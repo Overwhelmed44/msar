@@ -1,1 +1,2 @@
-from .main_factory import AuthManagerFactory as AuthManager
+from .auth_manager import AuthManager
+from .tokens import AccessToken

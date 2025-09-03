@@ -12,7 +12,7 @@ class TokenManager:
     def get(self, request: Request) -> str | None:
         ...
     
-    def set(self, response: Response, token: str) -> None:
+    def set(self, response: Response, token: str, type: str) -> None:
         ...
     
     def build(self, payload: dict) -> Token:
@@ -24,9 +24,6 @@ class TokenManager:
         if not self.token:
             raise NotImplementedError
         return self.token(token)
-    
-    def serialize(self, token: Token) -> str:
-        return token.serialize()
 
 
 class DefaultAccessTokenManager(TokenManager):
@@ -36,8 +33,8 @@ class DefaultAccessTokenManager(TokenManager):
     def get(self, request):
         return request.headers.get('Authorization')
     
-    def set(self, response, token):
-        response.headers.append('X-Refreshed-Access-Token', token)
+    def set(self, response, token, type):
+        response.headers.append(f'X-{type}-Access-Token', token)
 
 
 class DefaultRefreshTokenManager(TokenManager):
@@ -47,6 +44,6 @@ class DefaultRefreshTokenManager(TokenManager):
     def get(self, request) -> str | None:
         return request.cookies.get('refresh_token')
     
-    def set(self, response, token) -> None:
+    def set(self, response, token, type) -> None:
         self.cookie(response).set_cookie(token)  # type: ignore
     
