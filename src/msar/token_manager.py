@@ -34,7 +34,8 @@ class DefaultAccessTokenManager(TokenManager):
         return request.headers.get('Authorization')
     
     def set(self, response, token, type):
-        response.headers.append(f'X-{type}-Access-Token', token)
+        if token:
+            response.headers.append(f'X-{type}-Access-Token', token)
 
 
 class DefaultRefreshTokenManager(TokenManager):
@@ -45,5 +46,8 @@ class DefaultRefreshTokenManager(TokenManager):
         return request.cookies.get('refresh_token')
     
     def set(self, response, token, type) -> None:
-        self.cookie(response).set_cookie(token)  # type: ignore
+        if token == '-':
+            response.delete_cookie('refresh_token')
+        else:
+            self.cookie(response).set_cookie(token)  # type: ignore
     

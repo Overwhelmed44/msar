@@ -28,13 +28,17 @@ class AuthManager:
         RefreshToken.configure(refresh_token_policy)
         RefreshTokenCookie.configure(cookie_policy, 60 * 60 * 24 * 14)  # 14 days by default
     
-    def auth_manager(self, route_handler: Callable):
+    def auth_manager(self, login_required=False):
         '''Main wrapper'''
 
-        from .managers.route_manager import RouteAuthManager  # to avoid circular import
-        route_mgr = RouteAuthManager(route_handler, self)
+        def wrapper(route_handler: Callable):
+            from .managers.route_manager import RouteAuthManager  # to avoid circular import
+            route_mgr = RouteAuthManager(route_handler, self, login_required)
+            
+            return route_mgr.wrapper_factory()
         
-        return route_mgr.wrapper_factory()
+        return wrapper
+        
     
     def rotation_manager(self, rotation_handler: Callable):
         '''Wrapper for rotation handler specification. Should not be a FastAPI route handler'''

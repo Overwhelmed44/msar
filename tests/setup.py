@@ -1,5 +1,5 @@
 from fastapi.responses import JSONResponse
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from jwt import encode, decode
 
 from src.msar import AuthManager, AccessToken
@@ -14,15 +14,21 @@ enc_acc = lambda payload: encode(payload, b'abc', 'HS256')
 enc_ref = lambda payload: encode(payload, b'def', 'HS256')
 
 
-@app.get('/')
-@manager.auth_manager
-def root(access: AccessToken):
+@app.get('/req')
+@manager.auth_manager(True)
+def req(access: AccessToken):
+    return JSONResponse({'status': 'ok'})
+
+
+@app.get('/nreq')
+@manager.auth_manager(False)
+def nreq(access: AccessToken):
     return JSONResponse({'status': 'ok'})
 
 
 @app.get('/login')
 @manager.login
-def login():
+def login(request: Request):
     return {'key': 'value'}, enc_ref({'key1': 'value1'})
 
 

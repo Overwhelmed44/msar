@@ -7,12 +7,13 @@ from ..auth_manager import AuthManager
 from .manager import Manager
 
 class RouteAuthManager(Manager):
-    def __init__(self, handler, am: AuthManager):
+    def __init__(self, handler, am: AuthManager, login_required: bool):
         super().__init__(handler)
 
         self.request_name = get_request_name(handler)
         self.access_name = get_access_name(handler)
         self.am = am
+        self.required = login_required
     
     async def auth_manager_logic(self, func, request_: Request, *args, **kwargs):
         assert self.am.token_rotator_, "Rotate manager is not present"
@@ -27,13 +28,16 @@ class RouteAuthManager(Manager):
         if not access_token:
             refresh_token = self.am.refresh_mgr.get(request_)
         
-            if not refresh_token:
+            if not refresh_token and self.required:
                 return Response(status_code=401)
-            
-            refreshed = await self.am.token_rotator_.rotate(refresh_token)  # type: ignore
 
-            if not refreshed:
-                return Response(status_code=401)
+            if refresh_token:
+                refreshed = await self.am.token_rotator_.rotate(refresh_token)  # type: ignore
+
+                if not refreshed:
+                    return Response(status_code=401)
+            else:
+                refreshed = ({}, '-')
             
             access_token = self.am.access_mgr.build(refreshed[0])
             refresh_token = refreshed[1]
@@ -56,10 +60,10 @@ class RouteAuthManager(Manager):
 
         if refresh_token:
             self.am.access_mgr.set(
-                response,
-                access_token.serialize(),
-                'Refreshed'
-            )
+                    response,
+                    access_token.serialize() if access_token else '',
+                    'Refreshed'
+                )
             self.am.refresh_mgr.set(response, refresh_token, '')
 
         # after route processing ( end )
