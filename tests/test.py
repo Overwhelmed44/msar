@@ -1,4 +1,6 @@
 from fastapi.testclient import TestClient
+from inspect import getmembers
+
 from .setup import enc_acc, enc_ref
 
 
@@ -13,12 +15,24 @@ class Tester(TestClient):
         return r.cookies.get('refresh_token') == enc_ref({'key1': 'value1'})
     
     def test_valid_n(self):
-        r = self.get('/nreq')
+        r = self.get('/not_req')
 
         return r.status_code == 200
     
+    def test_login(self):
+        r = self.get('/login')
+        self.cookies.clear()
+
+        return bool(r.headers.get('X-Issued-Access-Token')) and bool(r.cookies.get('refresh_token'))
+    
+    def test_login_built(self):
+        r = self.get('/login_built')
+        self.cookies.clear()
+
+        return r.cookies.get('refresh_token') == enc_ref({'key1': 'value1'})
+    
     def test_valid_n_re(self):
-        r = self.get('/nreq', cookies={'refresh_token': enc_ref({'key': 'value'})})
+        r = self.get('/not_req', cookies={'refresh_token': enc_ref({'key': 'value'})})
         self.cookies.clear()
 
         return r.cookies.get('refresh_token') == enc_ref({'key1': 'value1'})
@@ -28,7 +42,7 @@ class Tester(TestClient):
         return r.status_code == 401
     
     def test_n_access_no(self):
-        r = self.get('/nreq', headers={'Authorization': enc_acc({'key': 'value'})})
+        r = self.get('/not_req', headers={'Authorization': enc_acc({'key': 'value'})})
 
         return r.status_code == 200 and r.headers.get('X-Refreshed-Access-Token') is None
 
@@ -62,22 +76,14 @@ class Tester(TestClient):
         return r.headers.get('X-Refreshed-Access-Token') == enc_acc({'key': 'value'})
 
     def test_all(self):
-        tests = [
-            self.test_valid,
-            self.test_valid_n,
-            self.test_valid_n_re,
-            self.test_absent,
-            self.test_access_re,
-            self.test_access_no,
-            self.test_cycle
-        ]
+        tests = [(name.lstrip('test_'), func) for name, func in getmembers(self) if name.startswith("test_") and name != 'test_all']
         
         passed = 0
-        for test in tests:
-            result = test()
+        for test_obj in tests:
+            result = test_obj[1]()
             passed += result
 
-            print(test.__name__.lstrip('test_'), ('failed', 'passed')[result])
+            print(test_obj[0], ('failed', 'passed')[result])
         print()
 
         if passed == len(tests):

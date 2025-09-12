@@ -27,17 +27,62 @@ class RouteAuthManager(Manager):
         
         if not access_token:
             refresh_token = self.am.refresh_mgr.get(request_)
+
+            refreshed = ({}, '-')
+            if refresh_token:
+                refreshed = await self.am.token_rotator_.rotate(refresh_token) or ({}, '-')  # type: ignore
+                
+            access_token = self.am.access_mgr.build(refreshed[0])
+            refresh_token = refreshed[1]
+
+        # before route processing ( end )
+        # route processing ( start )
+
+        if self.access_name:
+            kwargs[self.access_name] = access_token
+
+        if self.is_async:
+            response = await func(*args, **kwargs)
+        else:
+            response = func(*args, **kwargs)
+
+        assert isinstance(response, Response), 'Form a response inside your route when using auth_manager'
+
+        # route processing ( end )
+        # after route processing ( start )
+
+        if refresh_token:
+            self.am.access_mgr.set(
+                    response,
+                    access_token.serialize() if access_token else '',
+                    'Refreshed'
+                )
+            self.am.refresh_mgr.set(response, refresh_token, '')
+
+        # after route processing ( end )
+
+        return response
+    
+    async def required_auth_manager_logic(self, func, request_: Request, *args, **kwargs):
+        assert self.am.token_rotator_, "Rotate manager is not present"
+
+        # before route processing ( start )
+
+        access_token = self.am.access_mgr.get(request_)
+        if access_token:
+            access_token = self.am.access_mgr.resolve(access_token)
+        refresh_token = None
         
-            if not refresh_token and self.required:
+        if not access_token:
+            refresh_token = self.am.refresh_mgr.get(request_)
+        
+            if not refresh_token:
                 return Response(status_code=401)
 
-            if refresh_token:
-                refreshed = await self.am.token_rotator_.rotate(refresh_token)  # type: ignore
+            refreshed = await self.am.token_rotator_.rotate(refresh_token)  # type: ignore
 
-                if not refreshed:
-                    return Response(status_code=401)
-            else:
-                refreshed = ({}, '-')
+            if not refreshed:
+                return Response(status_code=401)
             
             access_token = self.am.access_mgr.build(refreshed[0])
             refresh_token = refreshed[1]
@@ -78,10 +123,14 @@ class RouteAuthManager(Manager):
 
         @wraps(self.handler, remove_args=remove_args)
         async def wrapped_req_passed(*args, **kwargs):
+            if self.required:
+                return await self.required_auth_manager_logic(self.handler, kwargs[self.request_name], *args, **kwargs)  # type: ignore
             return await self.auth_manager_logic(self.handler, kwargs[self.request_name], *args, **kwargs)  # type: ignore
         
         @wraps(self.handler, append_args=[Parameter('request', Parameter.POSITIONAL_OR_KEYWORD, annotation=Request)], remove_args=remove_args)
         async def wrapped_req_requested(request: Request, *args, **kwargs):
+            if self.required:
+                return await self.required_auth_manager_logic(self.handler, request, *args, **kwargs)
             return await self.auth_manager_logic(self.handler, request, *args, **kwargs)
 
         if self.request_name:

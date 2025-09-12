@@ -1,4 +1,4 @@
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi import FastAPI, Request
 from jwt import encode, decode
 
@@ -20,7 +20,7 @@ def req(access: AccessToken):
     return JSONResponse({'status': 'ok'})
 
 
-@app.get('/nreq')
+@app.get('/not_req')
 @manager.auth_manager(False)
 def nreq(access: AccessToken):
     return JSONResponse({'status': 'ok'})
@@ -30,6 +30,15 @@ def nreq(access: AccessToken):
 @manager.login
 def login(request: Request):
     return {'key': 'value'}, enc_ref({'key1': 'value1'})
+
+
+@app.get('/login_built')
+@manager.login
+def login_built(request: Request):
+    resp = Response()
+    resp.set_cookie('refresh_token', enc_ref({'key1': 'value1'}))
+
+    return resp
 
 
 @manager.rotation_manager
