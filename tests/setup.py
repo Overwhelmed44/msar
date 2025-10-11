@@ -8,7 +8,8 @@ app = FastAPI()
 manager = AuthManager(
     {'secret': b'abc', 'algorithm': 'HS256'},
     {'secret': b'def', 'algorithm': 'HS256'},
-    {}
+    {},
+    mode='dev'
 )
 enc_acc = lambda payload: encode(payload, b'abc', 'HS256')
 enc_ref = lambda payload: encode(payload, b'def', 'HS256')

@@ -23,14 +23,25 @@ class RouteAuthManager(Manager):
         access_token = self.am.access_mgr.get(request_)
         if access_token:
             access_token = self.am.access_mgr.resolve(access_token)
+        else:
+            self.am.log('(Not required) No access token provided')
         refresh_token = None
         
         if not access_token:
+            self.am.log('(Not required) Rotating')
+            
             refresh_token = self.am.refresh_mgr.get(request_)
 
             refreshed = ({}, '-')
             if refresh_token:
-                refreshed = await self.am.token_rotator_.rotate(refresh_token) or ({}, '-')  # type: ignore
+                refreshed = await self.am.token_rotator_.rotate(refresh_token)  # type: ignore
+
+                if not refreshed:
+                    self.am.log('(Not required) Rotation failed')
+
+                    refreshed = ({}, '-')
+            else:
+                self.am.log('(Not required) No refresh token provided')
                 
             access_token = self.am.access_mgr.build(refreshed[0])
             refresh_token = refreshed[1]
@@ -52,6 +63,8 @@ class RouteAuthManager(Manager):
         # after route processing ( start )
 
         if refresh_token:
+            self.am.log('(Not required) Updating tokens')
+
             self.am.access_mgr.set(
                     response,
                     access_token.serialize() if access_token else '',
@@ -71,17 +84,25 @@ class RouteAuthManager(Manager):
         access_token = self.am.access_mgr.get(request_)
         if access_token:
             access_token = self.am.access_mgr.resolve(access_token)
+        else:
+            self.am.log('(Required) No access token provided')
         refresh_token = None
         
         if not access_token:
+            self.am.log('(Required) Rotating')
+
             refresh_token = self.am.refresh_mgr.get(request_)
         
             if not refresh_token:
+                self.am.log('(Required) No refresh token provided: 401')
+
                 return Response(status_code=401)
 
             refreshed = await self.am.token_rotator_.rotate(refresh_token)  # type: ignore
 
             if not refreshed:
+                self.am.log('(Required) Rotation failed: 401')
+
                 return Response(status_code=401)
             
             access_token = self.am.access_mgr.build(refreshed[0])
@@ -104,6 +125,8 @@ class RouteAuthManager(Manager):
         # after route processing ( start )
 
         if refresh_token:
+            self.am.log('(Required) Updating tokens')
+
             self.am.access_mgr.set(
                     response,
                     access_token.serialize() if access_token else '',

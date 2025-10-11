@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Literal
 
 from .token_manager import TokenManager, DefaultAccessTokenManager, DefaultRefreshTokenManager
 from .policies import AccessTokenPolicy, RefreshTokenPolicy, CookiePolicy
@@ -18,11 +18,13 @@ class AuthManager:
         cookie_policy: CookiePolicy,
         *,
         access_token_manager: type[TokenManager] = DefaultAccessTokenManager,
-        refresh_token_manager: type[TokenManager] = DefaultRefreshTokenManager
+        refresh_token_manager: type[TokenManager] = DefaultRefreshTokenManager,
+        mode: Literal['prod', 'dev'] = 'prod'
     ):
         self.access_mgr = access_token_manager(AccessToken, None)
         self.refresh_mgr = refresh_token_manager(RefreshToken, RefreshTokenCookie)
         self.token_rotator_: RotationManager | None = None
+        self.mode = mode == 'dev'
 
         AccessToken.configure(access_token_policy)
         RefreshToken.configure(refresh_token_policy)
@@ -62,3 +64,9 @@ class AuthManager:
         signup_mgr = LoginManager(signup_handler, self)  # same logic as login, so reusing
 
         return signup_mgr.get_wrapped()
+
+    def log(self, message: str):
+        '''Used in development mode'''
+
+        if self.mode:
+            print(message)
