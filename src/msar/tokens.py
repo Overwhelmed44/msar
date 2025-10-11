@@ -1,5 +1,5 @@
 from typing import overload, Any
-from jwt import encode, decode
+from jwt import encode, decode, PyJWTError
 
 from .policies import TokenPolicy
 
@@ -21,7 +21,7 @@ class Token(dict):
 
     def __init__(self, jwt_or_payload: str | dict[str, Any]):
         if isinstance(jwt_or_payload, str):
-            super().__init__(self.decode(jwt_or_payload))
+            super().__init__(self.decode(jwt_or_payload) or {})
         else:
             super().__init__(jwt_or_payload)
 
@@ -36,7 +36,10 @@ class Token(dict):
     
     @classmethod
     def decode(cls, jwt: str, verify_exp: bool = True):
-        return decode(jwt, cls.secret, [cls.alg], options={"verify_exp": verify_exp})
+        try:
+            return decode(jwt, cls.secret, [cls.alg], options={"verify_exp": verify_exp})
+        except PyJWTError:
+            return None
     
     def serialize(self) -> str:
         return self.__class__.encode(self)
