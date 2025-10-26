@@ -17,7 +17,7 @@ enc_ref = lambda payload: encode(payload, b'def', 'HS256')
 
 @app.get('/req')
 @manager.auth_manager(True)
-def req(access: AccessToken):
+def req(request: Request, access: AccessToken):
     return JSONResponse({'status': 'ok'})
 
 

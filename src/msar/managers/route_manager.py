@@ -144,18 +144,19 @@ class RouteAuthManager(Manager):
         if self.access_name:
             remove_args.append(self.access_name)
 
-        @wraps(self.handler, remove_args=remove_args)
-        async def wrapped_req_passed(*args, **kwargs):
-            if self.required:
-                return await self.required_auth_manager_logic(self.handler, kwargs[self.request_name], *args, **kwargs)  # type: ignore
-            return await self.auth_manager_logic(self.handler, kwargs[self.request_name], *args, **kwargs)  # type: ignore
+        if self.request_name:
+            @wraps(self.handler, remove_args=remove_args)
+            async def wrapped_req_passed(*args, **kwargs):
+                if self.required:
+                    return await self.required_auth_manager_logic(self.handler, kwargs[self.request_name], *args, **kwargs)  # type: ignore
+                return await self.auth_manager_logic(self.handler, kwargs[self.request_name], *args, **kwargs)  # type: ignore
+            
+            return wrapped_req_passed
         
         @wraps(self.handler, append_args=[Parameter('request', Parameter.POSITIONAL_OR_KEYWORD, annotation=Request)], remove_args=remove_args)
         async def wrapped_req_requested(request: Request, *args, **kwargs):
             if self.required:
                 return await self.required_auth_manager_logic(self.handler, request, *args, **kwargs)
             return await self.auth_manager_logic(self.handler, request, *args, **kwargs)
-
-        if self.request_name:
-            return wrapped_req_passed        
+     
         return wrapped_req_requested
