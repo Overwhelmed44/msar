@@ -10,7 +10,7 @@ class RotationManager(Manager):
     def __init__(self, rotation_handler: rotation_handelr_type):
         super().__init__(rotation_handler)
     
-    async def rotate(self, refresh_token) -> rotation_result_type:
+    async def rotate(self, request, refresh_token) -> rotation_result_type:
         if self.is_async:
-            return await self.handler(refresh_token)  # type: ignore
-        return self.handler(refresh_token)  # type: ignore
+            return await self.handler(request, refresh_token)  # type: ignore
+        return self.handler(request, refresh_token)  # type: ignore

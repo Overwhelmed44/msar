@@ -43,9 +43,10 @@ def login_built(request: Request):
 
 
 @manager.rotation_manager
-def tr(refresh):
-    
+def tr(request, refresh):
     try:
+        assert isinstance(request, Request)
+
         decode(refresh, b'def', ['HS256'])
     except:
         return None

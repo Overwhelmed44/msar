@@ -74,6 +74,21 @@ class Tester(TestClient):
         self.cookies.clear()
 
         return r.headers.get('X-Refreshed-Access-Token') == enc_acc({'key': 'value'})
+    
+    def test_multiple(self):
+        r = self.get('/login')
+        access = r.headers.get('X-Issued-Access-Token')
+        refresh = r.cookies.get('refresh_token') or ''
+        self.cookies.clear()
+
+        for _ in range(5):
+            r = self.get('/req', headers={'Authorization': access}, cookies={'refresh_token': refresh})
+            print(r.headers)
+            if not r.status_code == 200 or r.headers.get('X-Refreshed-Access-Token'):
+                return False
+        
+        return True
+
 
     def test_all(self):
         tests = [(name.lstrip('test_'), func) for name, func in getmembers(self) if name.startswith("test_") and name != 'test_all']

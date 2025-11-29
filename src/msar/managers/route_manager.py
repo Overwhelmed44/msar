@@ -34,7 +34,7 @@ class RouteAuthManager(Manager):
 
             refreshed = ({}, '-')
             if refresh_token:
-                refreshed = await self.am.token_rotator_.rotate(refresh_token)  # type: ignore
+                refreshed = await self.am.token_rotator_.rotate(request_, refresh_token)  # type: ignore
 
                 if not refreshed:
                     self.am.log('(Not required) Rotation failed')
@@ -98,7 +98,7 @@ class RouteAuthManager(Manager):
 
                 return Response(status_code=401)
 
-            refreshed = await self.am.token_rotator_.rotate(refresh_token)  # type: ignore
+            refreshed = await self.am.token_rotator_.rotate(request_, refresh_token)  # type: ignore
 
             if not refreshed:
                 self.am.log('(Required) Rotation failed: 401')
