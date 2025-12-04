@@ -1,11 +1,11 @@
 from fastapi import Request, Response
 
-from .tokens import Token, AccessToken, RefreshToken
-from .cookies import Cookie, RefreshTokenCookie
+from .tokens import TokenFactory, Token, AccessToken, RefreshToken
+from .cookies import Cookie, CookieFactory
 
 
 class TokenManager:
-    def __init__(self, token: type[Token] | None, cookie: type[Cookie] | None):
+    def __init__(self, token: TokenFactory | None, cookie: CookieFactory | None):
         self.token = token
         self.cookie = cookie
         
@@ -18,16 +18,16 @@ class TokenManager:
     def build(self, payload: dict) -> Token:
         if not self.token:
             raise NotImplementedError
-        return self.token(payload)
+        return self.token.create(payload)
 
     def resolve(self, token: str) -> Token | None:
         if not self.token:
             raise NotImplementedError
-        return self.token(token)
+        return self.token.create(token)
 
 
 class DefaultAccessTokenManager(TokenManager):
-    def __init__(self, token: type[AccessToken], cookie=None):
+    def __init__(self, token: TokenFactory, cookie=None):
         super().__init__(token, cookie)
     
     def get(self, request):
@@ -39,7 +39,7 @@ class DefaultAccessTokenManager(TokenManager):
 
 
 class DefaultRefreshTokenManager(TokenManager):
-    def __init__(self, token: type[RefreshToken] | None, cookie: type[RefreshTokenCookie]):
+    def __init__(self, token: TokenFactory | None, cookie: CookieFactory):
         super().__init__(token, cookie)
     
     def get(self, request) -> str | None:
@@ -49,5 +49,5 @@ class DefaultRefreshTokenManager(TokenManager):
         if token == '-':
             response.delete_cookie('refresh_token')
         else:
-            self.cookie(response).set_cookie(token)  # type: ignore
+            self.cookie.create(response).set_cookie(token)  # type: ignore
     

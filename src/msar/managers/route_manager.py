@@ -108,7 +108,7 @@ class RouteAuthManager(Manager):
             
             access_token = self.am.access_mgr.build(refreshed[0])
             refresh_token = refreshed[1]
-            
+
         if not (set(access_token.get('scopes', set())) & self.scopes):
             self.am.log('(Required) No suitable scope provided: 403')
 

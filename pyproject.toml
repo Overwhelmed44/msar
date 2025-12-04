@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "msar"
-version = "0.1.8"
+version = "0.1.9"
 description = "Multi-Session Access/Refresh authentification manager for FastAPI-based applications"
 requires-python = ">=3.13"
 authors = [

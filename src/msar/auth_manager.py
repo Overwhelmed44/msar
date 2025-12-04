@@ -1,12 +1,11 @@
-from typing import Callable, Literal, Iterable
-from logging import getLogger, INFO
+from typing import Callable, Iterable
 
 from .token_manager import TokenManager, DefaultAccessTokenManager, DefaultRefreshTokenManager
 from .policies import AccessTokenPolicy, RefreshTokenPolicy, CookiePolicy
 from .managers.rotation_manager import RotationManager
-from .tokens import AccessToken, RefreshToken
+from .tokens import TokenFactory, AccessToken, RefreshToken
 from .token_manager import TokenManager
-from .cookies import RefreshTokenCookie
+from .cookies import CookieFactory, RefreshTokenCookie
 from .scopes import GlobalScopes, Scope
 
 
@@ -22,17 +21,40 @@ class AuthManager:
         *,
         access_token_manager: type[TokenManager] = DefaultAccessTokenManager,
         refresh_token_manager: type[TokenManager] = DefaultRefreshTokenManager,
-        mode: Literal['prod', 'dev'] = 'prod'
+        mode: str = 'prod'  # 'prod' | 'dev'
     ):
-        self.scopes = GlobalScopes(scopes)
-        self.access_mgr = access_token_manager(AccessToken, None)
-        self.refresh_mgr = refresh_token_manager(RefreshToken, RefreshTokenCookie)
-        self.token_rotator_: RotationManager | None = None
-        self.mode = mode == 'dev'
+        # Init args for with_ method
+        self.__access_token_policy = access_token_policy
+        self.__refresh_token_policy = refresh_token_policy
+        self.__cookie_policy = cookie_policy
+        self.__scopes = scopes
 
-        AccessToken.configure(access_token_policy)
-        RefreshToken.configure(refresh_token_policy)
-        RefreshTokenCookie.configure(cookie_policy)
+        self.access_f = TokenFactory(AccessToken, access_token_policy)
+        self.refresh_f = TokenFactory(RefreshToken, refresh_token_policy)
+        self.refresh_cookie_f = CookieFactory(RefreshTokenCookie, cookie_policy)
+        self.access_mgr = access_token_manager(self.access_f, None)
+        self.refresh_mgr = refresh_token_manager(self.refresh_f, self.refresh_cookie_f)
+        self.scopes = GlobalScopes(scopes)
+        self.token_rotator_: RotationManager | None = None
+        self.mode = mode
+    
+    def with_(
+        self,
+        access_token_policy: AccessTokenPolicy | None = None,
+        refresh_token_policy: RefreshTokenPolicy | None = None,
+        cookie_policy: CookiePolicy | None = None,
+        scopes: Iterable[Scope] | None = None,
+    ):
+        if access_token_policy is None:
+            access_token_policy = self.__access_token_policy
+        if refresh_token_policy is None:
+            refresh_token_policy = self.__refresh_token_policy
+        if cookie_policy is None:
+            cookie_policy = self.__cookie_policy
+        if scopes is None:
+            scopes = self.__scopes
+
+        return AuthManager(access_token_policy, refresh_token_policy, cookie_policy, scopes, mode=self.mode)
     
     def auth_manager(self, scopes: Iterable[str] = set()):
         '''Main wrapper'''
@@ -71,5 +93,5 @@ class AuthManager:
     def log(self, message: str):
         '''Used in development mode'''
 
-        if self.mode:
+        if self.mode == 'dev':
             print(message)
