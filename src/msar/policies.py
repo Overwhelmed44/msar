@@ -15,6 +15,7 @@ class RefreshTokenPolicy(TokenPolicy):
 
 
 class CookiePolicy(TypedDict, total=False):
+    max_age: int
     path: str
     domain: str
     secure: bool

@@ -9,13 +9,13 @@ class Tester(TestClient):
         super().__init__(app)
     
     def test_valid(self):
-        r = self.get('/req', cookies={'refresh_token': enc_ref({'key': 'value'})})
+        r = self.get('/admin_only', cookies={'refresh_token': enc_ref({'scopes': ['admin']})})
         self.cookies.clear()
 
         return r.cookies.get('refresh_token') == enc_ref({'key1': 'value1'})
     
     def test_valid_n(self):
-        r = self.get('/not_req')
+        r = self.get('/any')
 
         return r.status_code == 200
     
@@ -32,28 +32,28 @@ class Tester(TestClient):
         return r.cookies.get('refresh_token') == enc_ref({'key1': 'value1'})
     
     def test_valid_n_re(self):
-        r = self.get('/not_req', cookies={'refresh_token': enc_ref({'key': 'value'})})
+        r = self.get('/any', cookies={'refresh_token': enc_ref({'scopes': ['admin']})})
         self.cookies.clear()
 
         return r.cookies.get('refresh_token') == enc_ref({'key1': 'value1'})
 
     def test_absent(self):
-        r = self.get('/req')
+        r = self.get('/admin_only')
         return r.status_code == 401
     
     def test_n_access_no(self):
-        r = self.get('/not_req', headers={'Authorization': enc_acc({'key': 'value'})})
+        r = self.get('/any', headers={'Authorization': enc_acc({'scopes': ['admin']})})
 
         return r.status_code == 200 and r.headers.get('X-Refreshed-Access-Token') is None
 
     def test_access_re(self):
-        r = self.get('/req', cookies={'refresh_token': enc_ref({'key': 'value'})})
+        r = self.get('/admin_only', cookies={'refresh_token': enc_ref({'scopes': ['admin']})})
         self.cookies.clear()
 
-        return r.headers.get('X-Refreshed-Access-Token') == enc_acc({'key': 'value'})
+        return r.headers.get('X-Refreshed-Access-Token') == enc_acc({'scopes': ['admin']})
     
     def test_access_no(self):
-        r = self.get('/req', headers={'Authorization': enc_acc({'key': 'value'})})
+        r = self.get('/admin_only', headers={'Authorization': enc_acc({'scopes': ['admin']})})
 
         return r.status_code == 200 and r.headers.get('X-Refreshed-Access-Token') is None
     
@@ -66,14 +66,14 @@ class Tester(TestClient):
         if not access or not refresh:
             return False
 
-        r = self.get('/req', headers={'Authorization': access})
+        r = self.get('/auth_admin', headers={'Authorization': access})
         if not r.status_code == 200:
             return False
         
-        r = self.get('/req', cookies={'refresh_token': enc_ref({'key': 'value'})})
+        r = self.get('/auth_admin', cookies={'refresh_token': refresh})
         self.cookies.clear()
 
-        return r.headers.get('X-Refreshed-Access-Token') == enc_acc({'key': 'value'})
+        return r.headers.get('X-Refreshed-Access-Token') == access
     
     def test_multiple(self):
         r = self.get('/login')
@@ -82,13 +82,18 @@ class Tester(TestClient):
         self.cookies.clear()
 
         for _ in range(5):
-            r = self.get('/req', headers={'Authorization': access}, cookies={'refresh_token': refresh})
-            print(r.headers)
+            r = self.get('/auth_admin', headers={'Authorization': access}, cookies={'refresh_token': refresh})
+            
             if not r.status_code == 200 or r.headers.get('X-Refreshed-Access-Token'):
                 return False
         
         return True
 
+    def test_scope_fail(self):
+        r = self.get('/admin_only', cookies={'refresh_token': enc_ref({'scopes': ['auth']})})
+        self.cookies.clear()
+
+        return r.status_code == 403
 
     def test_all(self):
         tests = [(name.lstrip('test_'), func) for name, func in getmembers(self) if name.startswith("test_") and name != 'test_all']

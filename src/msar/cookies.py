@@ -13,8 +13,8 @@ class Cookie:
         ...
     
     @classmethod
-    def configure(cls, policy: CookiePolicy, max_age: int):
-        cls.policy = {**policy, 'max_age': max_age}
+    def configure(cls, policy: CookiePolicy):
+        cls.policy = policy
 
 
 class RefreshTokenCookie(Cookie):

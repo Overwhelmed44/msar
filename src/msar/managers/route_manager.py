@@ -1,4 +1,5 @@
 from fastapi import Request, Response
+from typing import Iterable
 from inspect import Parameter
 from makefun import wraps
 
@@ -7,13 +8,13 @@ from ..auth_manager import AuthManager
 from .manager import Manager
 
 class RouteAuthManager(Manager):
-    def __init__(self, handler, am: AuthManager, login_required: bool):
+    def __init__(self, am: AuthManager, handler, scopes: Iterable[str]):
         super().__init__(handler)
 
         self.request_name = get_request_name(handler)
         self.access_name = get_access_name(handler)
         self.am = am
-        self.required = login_required
+        self.scopes = am.scopes.get_local_scopes(scopes)
     
     async def auth_manager_logic(self, func, request_: Request, *args, **kwargs):
         assert self.am.token_rotator_, "Rotate manager is not present"
@@ -107,6 +108,11 @@ class RouteAuthManager(Manager):
             
             access_token = self.am.access_mgr.build(refreshed[0])
             refresh_token = refreshed[1]
+            
+        if not (set(access_token.get('scopes', set())) & self.scopes):
+            self.am.log('(Required) No suitable scope provided: 403')
+
+            return Response(status_code=403)
 
         # before route processing ( end )
         # route processing ( start )
@@ -138,6 +144,13 @@ class RouteAuthManager(Manager):
 
         return response
     
+    async def auth_manager_factory(self, func, request_: Request, *args, **kwargs):
+        assert self.am.token_rotator_, "Rotate manager is not present"
+
+        if not self.scopes:
+            return await self.auth_manager_logic(func, request_, *args, **kwargs)
+        return await self.required_auth_manager_logic(func, request_, *args, **kwargs)
+
     def wrapper_factory(self):
         remove_args = []
 
@@ -147,16 +160,12 @@ class RouteAuthManager(Manager):
         if self.request_name:
             @wraps(self.handler, remove_args=remove_args)
             async def wrapped_req_passed(*args, **kwargs):
-                if self.required:
-                    return await self.required_auth_manager_logic(self.handler, kwargs[self.request_name], *args, **kwargs)  # type: ignore
-                return await self.auth_manager_logic(self.handler, kwargs[self.request_name], *args, **kwargs)  # type: ignore
+                return await self.auth_manager_factory(self.handler, kwargs[self.request_name], *args, **kwargs)  # type: ignore
             
             return wrapped_req_passed
         
         @wraps(self.handler, append_args=[Parameter('request', Parameter.POSITIONAL_OR_KEYWORD, annotation=Request)], remove_args=remove_args)
         async def wrapped_req_requested(request: Request, *args, **kwargs):
-            if self.required:
-                return await self.required_auth_manager_logic(self.handler, request, *args, **kwargs)
-            return await self.auth_manager_logic(self.handler, request, *args, **kwargs)
+            return await self.auth_manager_factory(self.handler, request, *args, **kwargs)
      
         return wrapped_req_requested
