@@ -1,4 +1,4 @@
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Any
 
 from .token_manager import TokenManager, DefaultAccessTokenManager, DefaultRefreshTokenManager
 from .policies import AccessTokenPolicy, RefreshTokenPolicy, CookiePolicy
@@ -10,7 +10,7 @@ from .scopes import GlobalScopes, Scope
 
 
 class AuthManager:
-    '''Provides wrappers for auth handling'''
+    '''Provides wrappers and token managers for auth handling'''
 
     def __init__(
         self,
@@ -89,6 +89,12 @@ class AuthManager:
         signup_mgr = LoginManager(signup_handler, self)  # same logic as login, so reusing
 
         return signup_mgr.get_wrapped()
+
+    def use_access(self, jwt_or_payload: str | dict[str, Any]):
+        return self.access_f.create(jwt_or_payload)
+    
+    def use_refresh(self, jwt_or_payload: str | dict[str, Any]):
+        return self.refresh_f.create(jwt_or_payload)
 
     def log(self, message: str):
         '''Used in development mode'''

@@ -17,8 +17,6 @@ class RouteAuthManager(Manager):
         self.scopes = am.scopes.get_local_scopes(scopes)
     
     async def auth_manager_logic(self, func, request_: Request, *args, **kwargs):
-        assert self.am.token_rotator_, "Rotate manager is not present"
-
         # before route processing ( start )
 
         access_token = self.am.access_mgr.get(request_)
@@ -34,7 +32,7 @@ class RouteAuthManager(Manager):
             refresh_token = self.am.refresh_mgr.get(request_)
 
             refreshed = ({}, '-')
-            if refresh_token:
+            if refresh_token and self.am.token_rotator_:
                 refreshed = await self.am.token_rotator_.rotate(request_, refresh_token)  # type: ignore
 
                 if not refreshed:
@@ -78,8 +76,6 @@ class RouteAuthManager(Manager):
         return response
     
     async def required_auth_manager_logic(self, func, request_: Request, *args, **kwargs):
-        assert self.am.token_rotator_, "Rotate manager is not present"
-
         # before route processing ( start )
 
         access_token = self.am.access_mgr.get(request_)
@@ -98,6 +94,9 @@ class RouteAuthManager(Manager):
                 self.am.log('(Required) No refresh token provided: 401')
 
                 return Response(status_code=401)
+            
+            if not self.am.token_rotator_:
+                return Response('(Required) Rotation manages is missing: 500', status_code=500)
 
             refreshed = await self.am.token_rotator_.rotate(request_, refresh_token)  # type: ignore
 
@@ -145,8 +144,6 @@ class RouteAuthManager(Manager):
         return response
     
     async def auth_manager_factory(self, func, request_: Request, *args, **kwargs):
-        assert self.am.token_rotator_, "Rotate manager is not present"
-
         if not self.scopes:
             return await self.auth_manager_logic(func, request_, *args, **kwargs)
         return await self.required_auth_manager_logic(func, request_, *args, **kwargs)
