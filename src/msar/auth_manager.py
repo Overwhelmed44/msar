@@ -96,6 +96,10 @@ class AuthManager:
     def use_refresh(self, jwt_or_payload: str | dict[str, Any]):
         return self.refresh_f.create(jwt_or_payload)
 
+    @property
+    def cookie_policy(self) -> CookiePolicy:
+        return self.__cookie_policy
+
     def log(self, message: str):
         '''Used in development mode'''
 
