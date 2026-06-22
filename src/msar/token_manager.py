@@ -5,7 +5,7 @@ from .cookies import Cookie, CookieFactory
 
 
 class TokenManager:
-    def __init__(self, token: TokenFactory | None, cookie: CookieFactory | None):
+    def __init__(self, token: TokenFactory, cookie: CookieFactory | None):
         self.token = token
         self.cookie = cookie
         
@@ -39,13 +39,13 @@ class DefaultAccessTokenManager(TokenManager):
 
 
 class DefaultRefreshTokenManager(TokenManager):
-    def __init__(self, token: TokenFactory | None, cookie: CookieFactory):
+    def __init__(self, token: TokenFactory, cookie: CookieFactory):
         super().__init__(token, cookie)
     
-    def get_token(self, request) -> str | None:
+    def get_token(self, request):
         return request.cookies.get('refresh_token')
     
-    def set_token(self, response, token, tp) -> None:
+    def set_token(self, response, token, tp):
         if token == '-':
             response.delete_cookie('refresh_token')
         else:

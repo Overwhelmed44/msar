@@ -1,4 +1,5 @@
 from typing import Callable, Iterable, Any, Literal
+from secrets import token_bytes
 from fastapi import Request
 
 from .token_manager import TokenManager, DefaultAccessTokenManager, DefaultRefreshTokenManager
@@ -17,17 +18,19 @@ class AuthManager:
 
     def __init__(
         self,
-        access_token_policy: AccessTokenPolicy | str | bytes,
         refresh_token_policy: RefreshTokenPolicy | str | bytes | None = None,
         cookie_policy: CookiePolicy | str | None = None,
         scopes: Iterable[Scope] | None = None, 
         plugins: PluginManager | None = None,
         *,
+        access_token_policy: AccessTokenPolicy | str | bytes | None = None,
         access_token_manager: type[TokenManager] = DefaultAccessTokenManager,
         refresh_token_manager: type[TokenManager] = DefaultRefreshTokenManager,
         mode: Literal['dev', 'prod'] = 'prod'
     ):
         # Defaults
+        if access_token_policy is None:
+            access_token_policy = token_bytes(32)
         if isinstance(access_token_policy, str):
             access_token_policy = access_token_policy.encode()
         if isinstance(access_token_policy, bytes):
@@ -58,7 +61,7 @@ class AuthManager:
         self.refresh_mgr = refresh_token_manager(self.refresh_f, self.refresh_cookie_f)
         self.scopes = GlobalScopes(scopes)
         self.pm = plugins or PluginManager.get_default_manager()
-        self.token_rotator_: RotationManager | None = None
+        self.token_rotator_ = RotationManager(self.access_mgr, self.refresh_mgr)
         self.mode: Literal['dev', 'prod'] = mode
 
         self.provide_with: list[type] = [Request, AccessToken]
@@ -79,7 +82,7 @@ class AuthManager:
         if scopes is None:
             scopes = self.__scopes
 
-        return AuthManager(access_token_policy, refresh_token_policy, cookie_policy, scopes, self.pm, mode=self.mode)
+        return AuthManager(refresh_token_policy, cookie_policy, scopes, self.pm, access_token_policy=access_token_policy, mode=self.mode)
     
     def auth_manager(self, scopes: Iterable[str] | None = None):
         '''Main wrapper'''
@@ -98,7 +101,7 @@ class AuthManager:
     def rotation_manager(self, rotation_handler: Callable):
         '''Wrapper for rotation handler specification. Should not be a FastAPI route handler'''
 
-        self.token_rotator_ = RotationManager(rotation_handler)
+        self.token_rotator_ = self.token_rotator_.assign_handler(rotation_handler)
 
         return rotation_handler
     

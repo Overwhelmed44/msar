@@ -1,3 +1,4 @@
+from fastapi.responses import PlainTextResponse, JSONResponse
 from fastapi import Request, Response
 from typing import Iterable
 from inspect import Parameter
@@ -62,7 +63,14 @@ class RouteAuthManager(Manager):
         else:
             response = func(*args, **kwargs)
 
-        assert isinstance(response, Response), 'Form a response inside your route when using auth_manager'
+        if isinstance(response, Response):
+            ...
+        elif isinstance(response, str):
+            response = PlainTextResponse(response)
+        elif isinstance(response, dict):
+            response = JSONResponse(response)
+        else:
+            raise RuntimeError('Unknown response type')
 
         # route processing ( end )
         # after route processing ( start )
@@ -130,7 +138,14 @@ class RouteAuthManager(Manager):
         else:
             response = func(*args, **kwargs)
 
-        assert isinstance(response, Response), 'Form a response inside your route when using auth_manager'
+        if isinstance(response, Response):
+            ...
+        elif isinstance(response, str):
+            response = PlainTextResponse(response)
+        elif isinstance(response, dict):
+            response = JSONResponse(response)
+        else:
+            raise RuntimeError('Unknown response type')
 
         # route processing ( end )
         # after route processing ( start )
