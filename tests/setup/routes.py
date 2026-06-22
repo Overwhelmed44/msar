@@ -1,38 +1,32 @@
-from fastapi.responses import JSONResponse, Response
-from fastapi import FastAPI, Request
-from jwt import encode, decode
+from fastapi.responses import JSONResponse
+from fastapi import Request, Response
+from jwt import decode
 
-from src.msar import AuthManager
 from src.msar.tokens import AccessToken, RefreshToken
-from src.msar.scopes import Hierarchy, Basic
-
-app = FastAPI()
-manager = AuthManager(
-    {'secret': b'abc', 'algorithm': 'HS256'},
-    {'secret': b'def', 'algorithm': 'HS256'},
-    {'max_age': 60 * 60 * 24 * 14},
-    [Hierarchy(['auth', 'admin']), Basic(['tester'])],
-    mode='dev'
-)
-enc_acc = lambda payload: encode(payload, b'abc', 'HS256')
-enc_ref = lambda payload: encode(payload, b'def', 'HS256')
+from .setup import app, manager, enc_ref
 
 
-@app.get('/auth_admin')
+@app.get('/auth')
 @manager.auth_manager(['auth'])
 def auth_admin(request: Request):
     return JSONResponse({'status': 'ok'})
 
 
-@app.get('/admin_only')
+@app.get('/admin')
 @manager.auth_manager(['admin'])
 def admin_only(request: Request, access: AccessToken):
     return JSONResponse({'status': 'ok'})
 
 
-@app.get('/tester_only')
+@app.get('/tester')
 @manager.auth_manager(['tester'])
 def tester_only(request: Request, access: AccessToken):
+    return JSONResponse({'status': 'ok'})
+
+
+@app.get('/api')
+@manager.auth_manager(['tester'])
+def api(request: Request, access: AccessToken):
     return JSONResponse({'status': 'ok'})
 
 

@@ -1,4 +1,4 @@
 from .test import Tester
-from .setup import app
+from .setup.setup import app
 
 tester = Tester(app)

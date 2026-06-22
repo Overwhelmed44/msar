@@ -31,19 +31,19 @@ class LoginManager(Manager):
             resp = Response()
 
             if isinstance(response, str):
-                self.am.refresh_mgr.set(resp, response, '')
+                self.am.refresh_mgr.set_token(resp, response, '')
             elif isinstance(response, dict):
-                self.am.access_mgr.set(resp, self.am.access_mgr.build(response).serialize(), 'Issued')
+                self.am.access_mgr.set_token(resp, self.am.access_mgr.build(response).serialize(), 'Issued')
             else:
                 if isinstance(response[0], dict):
-                    self.am.access_mgr.set(resp, self.am.access_mgr.build(response[0]).serialize(), 'Issued')
+                    self.am.access_mgr.set_token(resp, self.am.access_mgr.build(response[0]).serialize(), 'Issued')
                 else:
-                    self.am.access_mgr.set(resp, response[0], 'Issued')
+                    self.am.access_mgr.set_token(resp, response[0], 'Issued')
                 
                 if isinstance(response[1], dict):
-                    self.am.refresh_mgr.set(resp, self.am.refresh_mgr.build(response[1]).serialize(), '')
+                    self.am.refresh_mgr.set_token(resp, self.am.refresh_mgr.build(response[1]).serialize(), '')
                 else:
-                    self.am.refresh_mgr.set(resp, response[1], '')
+                    self.am.refresh_mgr.set_token(resp, response[1], '')
 
             return resp
 

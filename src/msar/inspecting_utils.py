@@ -1,37 +1,22 @@
-from inspect import signature, iscoroutinefunction
-from fastapi import Request
+from inspect import signature, iscoroutinefunction, Parameter
 
-from .tokens import AccessToken
+from typing import Iterable
 
 
-def get_request_name(func):
-    '''Get name of the parameter with annotation fastapi.Request'''
-     
+def get_requested_params(func, annotations: Iterable[type]) -> dict[type, str | None]:
+    '''Get names of the parameters with specified annotations'''
+
+    annotations = set(annotations)
     sign = signature(func)
-    pass_request_name = None
+    names: dict[type, str | None] = {
+        annotation: None for annotation in annotations
+    }
 
     for param in sign.parameters.values():
-        if param.annotation is Request:
-            pass_request_name = param.name
-
-            break
+        if param.annotation in annotations:
+            names[param.annotation] = param.name
     
-    return pass_request_name
-
-
-def get_access_name(func):
-    '''Get name of the parameter with annotation msar.AccessToken'''
-
-    sign = signature(func)
-    pass_access_name = None
-
-    for param in sign.parameters.values():
-        if param.annotation is AccessToken:
-            pass_access_name = param.name
-
-            break
-    
-    return pass_access_name
+    return names
 
 
 def is_async(func):

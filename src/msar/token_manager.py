@@ -9,10 +9,10 @@ class TokenManager:
         self.token = token
         self.cookie = cookie
         
-    def get(self, request: Request) -> str | None:
+    def get_token(self, request: Request) -> str | None:
         ...
     
-    def set(self, response: Response, token: str, type: str) -> None:
+    def set_token(self, response: Response, token: str, tp: str) -> None:
         ...
     
     def build(self, payload: dict) -> Token:
@@ -30,22 +30,22 @@ class DefaultAccessTokenManager(TokenManager):
     def __init__(self, token: TokenFactory, cookie=None):
         super().__init__(token, cookie)
     
-    def get(self, request):
+    def get_token(self, request):
         return request.headers.get('Authorization')
     
-    def set(self, response, token, type):
+    def set_token(self, response, token, tp):
         if token:
-            response.headers.append(f'X-{type}-Access-Token', token)
+            response.headers.append(f'X-{tp}-Access-Token', token)
 
 
 class DefaultRefreshTokenManager(TokenManager):
     def __init__(self, token: TokenFactory | None, cookie: CookieFactory):
         super().__init__(token, cookie)
     
-    def get(self, request) -> str | None:
+    def get_token(self, request) -> str | None:
         return request.cookies.get('refresh_token')
     
-    def set(self, response, token, type) -> None:
+    def set_token(self, response, token, tp) -> None:
         if token == '-':
             response.delete_cookie('refresh_token')
         else:

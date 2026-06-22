@@ -3,23 +3,29 @@ from typing import Iterable
 from inspect import Parameter
 from makefun import wraps
 
-from ..inspecting_utils import get_request_name, get_access_name
+from ..inspecting_utils import get_requested_params
 from ..auth_manager import AuthManager
+from ..tokens import AccessToken
 from .manager import Manager
+
 
 class RouteAuthManager(Manager):
     def __init__(self, am: AuthManager, handler, scopes: Iterable[str]):
         super().__init__(handler)
 
-        self.request_name = get_request_name(handler)
-        self.access_name = get_access_name(handler)
         self.am = am
+        self.param_names = get_requested_params(handler, self.am.provide_with)
         self.scopes = am.scopes.get_local_scopes(scopes)
     
     async def auth_manager_logic(self, func, request_: Request, *args, **kwargs):
+        # before request plugins ( start )
+
+        self.am.pm.before_request(request_)
+
+        # before request plugins ( end )
         # before route processing ( start )
 
-        access_token = self.am.access_mgr.get(request_)
+        access_token = self.am.access_mgr.get_token(request_)
         if access_token:
             access_token = self.am.access_mgr.resolve(access_token)
         else:
@@ -29,7 +35,7 @@ class RouteAuthManager(Manager):
         if not access_token:
             self.am.log('(Not required) Rotating')
             
-            refresh_token = self.am.refresh_mgr.get(request_)
+            refresh_token = self.am.refresh_mgr.get_token(request_)
 
             refreshed = ({}, '-')
             if refresh_token and self.am.token_rotator_:
@@ -48,8 +54,8 @@ class RouteAuthManager(Manager):
         # before route processing ( end )
         # route processing ( start )
 
-        if self.access_name:
-            kwargs[self.access_name] = access_token
+        if (access_name := self.param_names.get(AccessToken)):
+            kwargs[access_name] = access_token
 
         if self.is_async:
             response = await func(*args, **kwargs)
@@ -64,12 +70,12 @@ class RouteAuthManager(Manager):
         if refresh_token:
             self.am.log('(Not required) Updating tokens')
 
-            self.am.access_mgr.set(
+            self.am.access_mgr.set_token(
                     response,
                     access_token.serialize() if access_token else '',
                     'Refreshed'
                 )
-            self.am.refresh_mgr.set(response, refresh_token, '')
+            self.am.refresh_mgr.set_token(response, refresh_token, '')
 
         # after route processing ( end )
 
@@ -78,7 +84,7 @@ class RouteAuthManager(Manager):
     async def required_auth_manager_logic(self, func, request_: Request, *args, **kwargs):
         # before route processing ( start )
 
-        access_token = self.am.access_mgr.get(request_)
+        access_token = self.am.access_mgr.get_token(request_)
         if access_token:
             access_token = self.am.access_mgr.resolve(access_token)
         else:
@@ -88,7 +94,7 @@ class RouteAuthManager(Manager):
         if not access_token:
             self.am.log('(Required) Rotating')
 
-            refresh_token = self.am.refresh_mgr.get(request_)
+            refresh_token = self.am.refresh_mgr.get_token(request_)
         
             if not refresh_token:
                 self.am.log('(Required) No refresh token provided: 401')
@@ -96,7 +102,7 @@ class RouteAuthManager(Manager):
                 return Response(status_code=401)
             
             if not self.am.token_rotator_:
-                return Response('(Required) Rotation manages is missing: 500', status_code=500)
+                return Response('(Required) Rotation manage is missing: 500', status_code=500)
 
             refreshed = await self.am.token_rotator_.rotate(request_, refresh_token)  # type: ignore
 
@@ -108,7 +114,7 @@ class RouteAuthManager(Manager):
             access_token = self.am.access_mgr.build(refreshed[0])
             refresh_token = refreshed[1]
 
-        if not (set(access_token.get('scopes', set())) & self.scopes):
+        if not self.scopes & set(access_token.get('scopes', set())):
             self.am.log('(Required) No suitable scope provided: 403')
 
             return Response(status_code=403)
@@ -116,8 +122,8 @@ class RouteAuthManager(Manager):
         # before route processing ( end )
         # route processing ( start )
 
-        if self.access_name:
-            kwargs[self.access_name] = access_token
+        if (access_name := self.param_names.get(AccessToken)):
+            kwargs[access_name] = access_token
 
         if self.is_async:
             response = await func(*args, **kwargs)
@@ -132,32 +138,37 @@ class RouteAuthManager(Manager):
         if refresh_token:
             self.am.log('(Required) Updating tokens')
 
-            self.am.access_mgr.set(
+            self.am.access_mgr.set_token(
                     response,
                     access_token.serialize() if access_token else '',
                     'Refreshed'
                 )
-            self.am.refresh_mgr.set(response, refresh_token, '')
+            self.am.refresh_mgr.set_token(response, refresh_token, '')
 
         # after route processing ( end )
+        # after request plugins ( start )
+
+        self.am.pm.after_request(request_, response)
+
+        # after request plugins ( end )
 
         return response
     
     async def auth_manager_factory(self, func, request_: Request, *args, **kwargs):
-        if not self.scopes:
+        if not self.scopes.scopes:
             return await self.auth_manager_logic(func, request_, *args, **kwargs)
         return await self.required_auth_manager_logic(func, request_, *args, **kwargs)
 
     def wrapper_factory(self):
         remove_args = []
 
-        if self.access_name:
-            remove_args.append(self.access_name)
+        if (access_name := self.param_names.get(AccessToken)):
+            remove_args.append(access_name)
 
-        if self.request_name:
+        if (request_name := self.param_names.get(Request)):
             @wraps(self.handler, remove_args=remove_args)
             async def wrapped_req_passed(*args, **kwargs):
-                return await self.auth_manager_factory(self.handler, kwargs[self.request_name], *args, **kwargs)  # type: ignore
+                return await self.auth_manager_factory(self.handler, kwargs[request_name], *args, **kwargs)  # type: ignore
             
             return wrapped_req_passed
         

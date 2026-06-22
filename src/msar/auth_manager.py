@@ -1,4 +1,5 @@
-from typing import Callable, Iterable, Any
+from typing import Callable, Iterable, Any, Literal
+from fastapi import Request
 
 from .token_manager import TokenManager, DefaultAccessTokenManager, DefaultRefreshTokenManager
 from .policies import AccessTokenPolicy, RefreshTokenPolicy, CookiePolicy
@@ -6,7 +7,9 @@ from .managers.rotation_manager import RotationManager
 from .tokens import TokenFactory, AccessToken, RefreshToken
 from .token_manager import TokenManager
 from .cookies import CookieFactory, RefreshTokenCookie
-from .scopes import GlobalScopes, Scope
+from .scopes.use import GlobalScopes
+from .scopes.scopes import Scope
+from .plugins.plugin_manager import PluginManager
 
 
 class AuthManager:
@@ -14,36 +17,58 @@ class AuthManager:
 
     def __init__(
         self,
-        access_token_policy: AccessTokenPolicy,
-        refresh_token_policy: RefreshTokenPolicy,
-        cookie_policy: CookiePolicy,
-        scopes: Iterable[Scope],
+        access_token_policy: AccessTokenPolicy | str | bytes,
+        refresh_token_policy: RefreshTokenPolicy | str | bytes | None = None,
+        cookie_policy: CookiePolicy | str | None = None,
+        scopes: Iterable[Scope] | None = None, 
+        plugins: PluginManager | None = None,
         *,
         access_token_manager: type[TokenManager] = DefaultAccessTokenManager,
         refresh_token_manager: type[TokenManager] = DefaultRefreshTokenManager,
-        mode: str = 'prod'  # 'prod' | 'dev'
+        mode: Literal['dev', 'prod'] = 'prod'
     ):
-        # Init args for with_ method
+        # Defaults
+        if isinstance(access_token_policy, str):
+            access_token_policy = access_token_policy.encode()
+        if isinstance(access_token_policy, bytes):
+            access_token_policy = AccessTokenPolicy(secret=access_token_policy, algorithm='HS256')
+        if refresh_token_policy is None:
+            refresh_token_policy = ''
+        if isinstance(refresh_token_policy, str):
+            refresh_token_policy = refresh_token_policy.encode()
+        if isinstance(refresh_token_policy, bytes):
+            refresh_token_policy = RefreshTokenPolicy(secret=refresh_token_policy, algorithm='HS256')
+        if cookie_policy is None:
+            cookie_policy = CookiePolicy({'max_age': 14 * 24 * 60 * 60, 'path': '/', 'secure': True, 'httponly': True, 'samesite': 'lax'})
+        if isinstance(cookie_policy, str):
+            cookie_policy = CookiePolicy({'max_age': 14 * 24 * 60 * 60, 'path': '/', 'domain': cookie_policy, 'secure': True, 'httponly': True, 'samesite': 'lax'})
+        if scopes is None:
+            scopes = []
+
+        # Raw args for with_ method
         self.__access_token_policy = access_token_policy
         self.__refresh_token_policy = refresh_token_policy
         self.__cookie_policy = cookie_policy
         self.__scopes = scopes
 
-        self.access_f = TokenFactory(AccessToken, access_token_policy)
-        self.refresh_f = TokenFactory(RefreshToken, refresh_token_policy)
+        self.access_f = TokenFactory(AccessToken, access_token_policy)  # type: ignore
+        self.refresh_f = TokenFactory(RefreshToken, refresh_token_policy)  # type: ignore
         self.refresh_cookie_f = CookieFactory(RefreshTokenCookie, cookie_policy)
         self.access_mgr = access_token_manager(self.access_f, None)
         self.refresh_mgr = refresh_token_manager(self.refresh_f, self.refresh_cookie_f)
         self.scopes = GlobalScopes(scopes)
+        self.pm = plugins or PluginManager.get_default_manager()
         self.token_rotator_: RotationManager | None = None
-        self.mode = mode
+        self.mode: Literal['dev', 'prod'] = mode
+
+        self.provide_with: list[type] = [Request, AccessToken]
     
     def with_(
         self,
-        access_token_policy: AccessTokenPolicy | None = None,
-        refresh_token_policy: RefreshTokenPolicy | None = None,
-        cookie_policy: CookiePolicy | None = None,
-        scopes: Iterable[Scope] | None = None,
+        access_token_policy: AccessTokenPolicy | str | bytes | None = None,
+        refresh_token_policy: RefreshTokenPolicy | str | bytes | None = None,
+        cookie_policy: CookiePolicy | str | None = None,
+        scopes: Iterable[Scope] | None = None, 
     ):
         if access_token_policy is None:
             access_token_policy = self.__access_token_policy
@@ -54,10 +79,13 @@ class AuthManager:
         if scopes is None:
             scopes = self.__scopes
 
-        return AuthManager(access_token_policy, refresh_token_policy, cookie_policy, scopes, mode=self.mode)
+        return AuthManager(access_token_policy, refresh_token_policy, cookie_policy, scopes, self.pm, mode=self.mode)
     
-    def auth_manager(self, scopes: Iterable[str] = set()):
+    def auth_manager(self, scopes: Iterable[str] | None = None):
         '''Main wrapper'''
+
+        if scopes is None:
+            scopes = set()
 
         def wrapper(route_handler: Callable):
             from .managers.route_manager import RouteAuthManager  # to avoid circular import

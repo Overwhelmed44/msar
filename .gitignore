@@ -2,3 +2,5 @@ venv
 .vscode
 __pycache__
 main.py
+nb.ipynb
+README.md
