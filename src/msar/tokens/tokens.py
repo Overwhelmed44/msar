@@ -1,7 +1,7 @@
 from typing import overload, Any
 from jwt import encode, decode, PyJWTError
 
-from .policies import TokenPolicy
+from msar.policies import TokenPolicy
 
 
 class Token(dict):

@@ -2,11 +2,11 @@ from typing import Callable, Iterable, Any, Literal
 from secrets import token_bytes
 from fastapi import Request
 
-from .token_manager import TokenManager, DefaultAccessTokenManager, DefaultRefreshTokenManager
+from .tokens.token_manager import TokenManager, DefaultAccessTokenManager, DefaultRefreshTokenManager
 from .policies import AccessTokenPolicy, RefreshTokenPolicy, CookiePolicy
 from .managers.rotation_manager import RotationManager
-from .tokens import TokenFactory, AccessToken, RefreshToken
-from .token_manager import TokenManager
+from .tokens.tokens import TokenFactory, AccessToken, RefreshToken
+from .tokens.token_manager import TokenManager
 from .cookies import CookieFactory, RefreshTokenCookie
 from .scopes.use import GlobalScopes
 from .scopes.scopes import Scope

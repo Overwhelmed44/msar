@@ -1,6 +1,6 @@
 from typing import Callable, Coroutine, Any
 
-from ..token_manager import TokenManager
+from msar.tokens.token_manager import TokenManager
 from .manager import Manager
 
 type rotation_result_type = tuple[dict, str] | None

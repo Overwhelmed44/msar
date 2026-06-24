@@ -1,7 +1,7 @@
 from fastapi import Request, Response
 
 from .tokens import TokenFactory, Token, AccessToken, RefreshToken
-from .cookies import Cookie, CookieFactory
+from msar.cookies import Cookie, CookieFactory
 
 
 class TokenManager:

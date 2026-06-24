@@ -2,7 +2,7 @@ from collections import defaultdict
 from typing import Iterable
 from functools import reduce
 
-from ..scopes.scopes import Scope
+from .scopes import Scope
 
 
 class LocalScopes:

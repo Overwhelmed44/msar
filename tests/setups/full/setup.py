@@ -1,13 +1,13 @@
 from fastapi import FastAPI
 
-from msar.scopes.scopes import Basic, Hierarchy, Admin
+from msar.scopes import Basic, Hierarchy, Admin
 from msar import AuthManager
 
 app = FastAPI()
 am = AuthManager(
     "abc",
     {'secure': False},
-    [Basic("api"), Hierarchy(["tester", "auth"]), Admin(["admin"])],
+    [Basic(["api"]), Hierarchy(["tester", "auth"]), Admin(["admin"])],
     mode='dev'
 )
 enc_acc = lambda p: am.use_access(p).serialize()
