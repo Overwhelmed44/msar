@@ -21,12 +21,12 @@ def test_public_cycle(client):
 
     r = client.get('/public')
     assert r.status_code == 200
-    assert 'x-refreshed-access-token' in set(r.headers.keys())
-    at = r.headers.get('x-refreshed-access-token')
+    assert 'x-access-token' in set(r.headers.keys())
+    at = r.headers.get('x-access-token')
 
-    r = client.get('/public', headers={'Authorization': at})
+    r = client.get('/public', headers={'Authorization': f'Bearer {at}'})
     assert r.status_code == 200
-    assert 'x-refreshed-access-token' not in set(r.headers.keys())
+    assert 'x-access-token' not in set(r.headers.keys())
 
 
 def test_auth_cycle(client):
@@ -35,12 +35,12 @@ def test_auth_cycle(client):
 
     r = client.get('/auth')
     assert r.status_code == 200
-    assert 'x-refreshed-access-token' in set(r.headers.keys())
-    at = r.headers.get('x-refreshed-access-token')
+    assert 'x-access-token' in set(r.headers.keys())
+    at = r.headers.get('x-access-token')
 
-    r = client.get('/auth', headers={'Authorization': at})
+    r = client.get('/auth', headers={'Authorization': f'Bearer {at}'})
     assert r.status_code == 200
-    assert 'x-refreshed-access-token' not in set(r.headers.keys())
+    assert 'x-access-token' not in set(r.headers.keys())
 
 
 def test_auth_403(client):
@@ -49,12 +49,12 @@ def test_auth_403(client):
 
     r = client.get('/auth')
     assert r.status_code == 200
-    assert 'x-refreshed-access-token' in set(r.headers.keys())
-    at = r.headers.get('x-refreshed-access-token')
+    assert 'x-access-token' in set(r.headers.keys())
+    at = r.headers.get('x-access-token')
 
-    r = client.get('/admin', headers={'Authorization': at})
+    r = client.get('/admin', headers={'Authorization': f'Bearer {at}'})
     assert r.status_code == 403
-    assert 'x-refreshed-access-token' not in set(r.headers.keys())
+    assert 'x-access-token' not in set(r.headers.keys())
 
 
 def test_admin(client):
@@ -63,16 +63,16 @@ def test_admin(client):
 
     r = client.get('/tester')
     assert r.status_code == 200
-    assert 'x-refreshed-access-token' in set(r.headers.keys())
-    at = r.headers.get('x-refreshed-access-token')
+    assert 'x-access-token' in set(r.headers.keys())
+    at = r.headers.get('x-access-token')
 
-    r = client.get('/admin', headers={'Authorization': at})
+    r = client.get('/admin', headers={'Authorization': f'Bearer {at}'})
     assert r.status_code == 200
-    assert 'x-refreshed-access-token' not in set(r.headers.keys())
+    assert 'x-access-token' not in set(r.headers.keys())
 
-    r = client.get('/auth', headers={'Authorization': at})
+    r = client.get('/auth', headers={'Authorization': f'Bearer {at}'})
     assert r.status_code == 200
-    assert 'x-refreshed-access-token' not in set(r.headers.keys())
+    assert 'x-access-token' not in set(r.headers.keys())
 
 
 def test_tester(client):
@@ -81,20 +81,20 @@ def test_tester(client):
 
     r = client.get('/tester')
     assert r.status_code == 200
-    assert 'x-refreshed-access-token' in set(r.headers.keys())
-    at = r.headers.get('x-refreshed-access-token')
+    assert 'x-access-token' in set(r.headers.keys())
+    at = r.headers.get('x-access-token')
 
-    r = client.get('/admin', headers={'Authorization': at})
+    r = client.get('/admin', headers={'Authorization': f'Bearer {at}'})
     assert r.status_code == 403
-    assert 'x-refreshed-access-token' not in set(r.headers.keys())
+    assert 'x-access-token' not in set(r.headers.keys())
 
-    r = client.get('/auth', headers={'Authorization': at})
+    r = client.get('/auth', headers={'Authorization': f'Bearer {at}'})
     assert r.status_code == 200
-    assert 'x-refreshed-access-token' not in set(r.headers.keys())
+    assert 'x-access-token' not in set(r.headers.keys())
 
-    r = client.get('/api', headers={'Authorization': at})
+    r = client.get('/api', headers={'Authorization': f'Bearer {at}'})
     assert r.status_code == 403
-    assert 'x-refreshed-access-token' not in set(r.headers.keys())
+    assert 'x-access-token' not in set(r.headers.keys())
 
 
 def test_api(client):
@@ -103,21 +103,21 @@ def test_api(client):
 
     r = client.get('/public')
     assert r.status_code == 200
-    assert 'x-refreshed-access-token' in set(r.headers.keys())
-    at = r.headers.get('x-refreshed-access-token')
+    assert 'x-access-token' in set(r.headers.keys())
+    at = r.headers.get('x-access-token')
 
-    r = client.get('/admin', headers={'Authorization': at})
+    r = client.get('/admin', headers={'Authorization': f'Bearer {at}'})
     assert r.status_code == 403
-    assert 'x-refreshed-access-token' not in set(r.headers.keys())
+    assert 'x-access-token' not in set(r.headers.keys())
 
-    r = client.get('/auth', headers={'Authorization': at})
+    r = client.get('/auth', headers={'Authorization': f'Bearer {at}'})
     assert r.status_code == 403
-    assert 'x-refreshed-access-token' not in set(r.headers.keys())
+    assert 'x-access-token' not in set(r.headers.keys())
 
-    r = client.get('/api', headers={'Authorization': at})
+    r = client.get('/api', headers={'Authorization': f'Bearer {at}'})
     assert r.status_code == 200
-    assert 'x-refreshed-access-token' not in set(r.headers.keys())
+    assert 'x-access-token' not in set(r.headers.keys())
 
-    r = client.get('/tester', headers={'Authorization': at})
+    r = client.get('/tester', headers={'Authorization': f'Bearer {at}'})
     assert r.status_code == 403
-    assert 'x-refreshed-access-token' not in set(r.headers.keys())
+    assert 'x-access-token' not in set(r.headers.keys())

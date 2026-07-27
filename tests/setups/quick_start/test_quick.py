@@ -21,9 +21,9 @@ def test_cycle(client):
 
     r = client.get('/greet')
     assert r.status_code == 200
-    assert 'x-refreshed-access-token' in set(r.headers.keys())
-    at = r.headers.get('x-refreshed-access-token')
+    assert 'x-access-token' in set(r.headers.keys())
+    at = r.headers.get('x-access-token')
 
-    r = client.get('/greet', headers={'Authorization': at})
+    r = client.get('/greet', headers={'Authorization': f'Bearer {at}'})
     assert r.status_code == 200
-    assert 'x-refreshed-access-token' not in set(r.headers.keys())
+    assert 'x-access-token' not in set(r.headers.keys())

@@ -80,10 +80,9 @@ class RouteAuthManager(Manager):
 
             self.am.access_mgr.set_token(
                     response,
-                    access_token.serialize() if access_token else '',
-                    'Refreshed'
+                    access_token.serialize() if access_token else ''
                 )
-            self.am.refresh_mgr.set_token(response, refresh_token, '')
+            self.am.refresh_mgr.set_token(response, refresh_token)
 
         # after route processing ( end )
 
@@ -110,7 +109,9 @@ class RouteAuthManager(Manager):
                 return Response(status_code=401)
             
             if not self.am.token_rotator_:
-                return Response('(Required) Rotation manage is missing: 500', status_code=500)
+                self.am.log('(Required) Rotation manage is missing: 500')
+
+                return Response(status_code=500)
 
             refreshed = await self.am.token_rotator_.rotate(request_, refresh_token)  # type: ignore
 
@@ -155,10 +156,9 @@ class RouteAuthManager(Manager):
 
             self.am.access_mgr.set_token(
                     response,
-                    access_token.serialize() if access_token else '',
-                    'Refreshed'
+                    access_token.serialize() if access_token else ''
                 )
-            self.am.refresh_mgr.set_token(response, refresh_token, '')
+            self.am.refresh_mgr.set_token(response, refresh_token)
 
         # after route processing ( end )
         # after request plugins ( start )

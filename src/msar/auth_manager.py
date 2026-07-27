@@ -2,12 +2,12 @@ from typing import Callable, Iterable, Any, Literal
 from secrets import token_bytes
 from fastapi import Request
 
-from .tokens.token_manager import TokenManager, DefaultAccessTokenManager, DefaultRefreshTokenManager
-from .policies import AccessTokenPolicy, RefreshTokenPolicy, CookiePolicy
+from .tokens.token_manager import AccessTokenManager, RefreshTokenManager
+from .policies import AccessTokenPolicy, RefreshTokenPolicy
 from .managers.rotation_manager import RotationManager
 from .tokens.tokens import TokenFactory, AccessToken, RefreshToken
-from .tokens.token_manager import TokenManager
-from .cookies import CookieFactory, RefreshTokenCookie
+from .cookies.cookies import RefreshTokenCookie
+from .cookies.policies import CookiePolicy
 from .scopes.use import GlobalScopes
 from .scopes.scopes import Scope
 from .plugins.plugin_manager import PluginManager
@@ -24,8 +24,8 @@ class AuthManager:
         plugins: PluginManager | None = None,
         *,
         access_token_policy: AccessTokenPolicy | str | bytes | None = None,
-        access_token_manager: type[TokenManager] = DefaultAccessTokenManager,
-        refresh_token_manager: type[TokenManager] = DefaultRefreshTokenManager,
+        access_token_manager: type[AccessTokenManager] = AccessTokenManager,
+        refresh_token_manager: type[RefreshTokenManager] = RefreshTokenManager,
         mode: Literal['dev', 'prod'] = 'prod'
     ):
         # Defaults
@@ -56,9 +56,9 @@ class AuthManager:
 
         self.access_f = TokenFactory(AccessToken, access_token_policy)  # type: ignore
         self.refresh_f = TokenFactory(RefreshToken, refresh_token_policy)  # type: ignore
-        self.refresh_cookie_f = CookieFactory(RefreshTokenCookie, cookie_policy)
-        self.access_mgr = access_token_manager(self.access_f, None)
-        self.refresh_mgr = refresh_token_manager(self.refresh_f, self.refresh_cookie_f)
+        self.refresh_cookie = RefreshTokenCookie(cookie_policy)
+        self.access_mgr = access_token_manager(self.access_f)
+        self.refresh_mgr = refresh_token_manager(self.refresh_f, self.refresh_cookie)
         self.scopes = GlobalScopes(scopes)
         self.pm = plugins or PluginManager.get_default_manager()
         self.token_rotator_ = RotationManager(self.access_mgr, self.refresh_mgr)
