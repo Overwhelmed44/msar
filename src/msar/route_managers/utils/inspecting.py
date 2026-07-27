@@ -1,4 +1,4 @@
-from inspect import signature, iscoroutinefunction, Parameter
+from inspect import signature, iscoroutinefunction
 
 from typing import Iterable
 

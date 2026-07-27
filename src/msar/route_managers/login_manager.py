@@ -1,7 +1,7 @@
 from fastapi import Response
 from makefun import wraps
 
-from ..auth_manager import AuthManager
+from ..abs import ABSAuthManager as AuthManager
 from .manager import Manager
 
 
@@ -17,10 +17,10 @@ class LoginManager(Manager):
         async def wrapped(*args, **kwargs):
             # route processing ( start )
 
-            if self.is_async:
-                response = await self.handler(*args, **kwargs)
-            else:
-                response = self.handler(*args, **kwargs)
+            response = await self.am.safex.with_fallback(
+                self.handler, Response(status_code=500),
+                *args, **kwargs
+            )
         
             # route processing ( end )
             # after route processing ( start )

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "msar"
-version = "0.2.3"
+version = "0.2.4"
 description = "MSAR is a security framework for FastAPI that provides JWT authentication, multi-session token management, adaptive rate limiting, IP intelligence, request observation, and other production-ready security features"
 readme = "README.md"
 requires-python = ">=3.13"

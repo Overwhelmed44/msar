@@ -1,6 +1,6 @@
 from typing import Callable
 
-from ..inspecting_utils import is_async
+from .utils.inspecting import is_async
 
 
 class Manager:

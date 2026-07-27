@@ -4,8 +4,8 @@ from typing import Iterable
 from inspect import Parameter
 from makefun import wraps
 
-from ..inspecting_utils import get_requested_params
-from ..auth_manager import AuthManager
+from .utils.inspecting import get_requested_params
+from ..abs import ABSAuthManager as AuthManager
 from ..tokens import AccessToken
 from .manager import Manager
 
@@ -30,24 +30,24 @@ class RouteAuthManager(Manager):
         if access_token:
             access_token = self.am.access_mgr.resolve(access_token)
         else:
-            self.am.log('(Not required) No access token provided')
+            self.am.logger.debug('(Not required) No access token provided')
         refresh_token = None
         
         if not access_token:
-            self.am.log('(Not required) Rotating')
+            self.am.logger.debug('(Not required) Rotating')
             
             refresh_token = self.am.refresh_mgr.get_token(request_)
 
             refreshed = ({}, '-')
-            if refresh_token and self.am.token_rotator_:
+            if refresh_token and self.am.token_rotator_.is_assigned:
                 refreshed = await self.am.token_rotator_.rotate(request_, refresh_token)  # type: ignore
 
                 if not refreshed:
-                    self.am.log('(Not required) Rotation failed')
+                    self.am.logger.debug('(Not required) Rotation failed')
 
                     refreshed = ({}, '-')
             else:
-                self.am.log('(Not required) No refresh token provided')
+                self.am.logger.debug('(Not required) No refresh token provided')
                 
             access_token = self.am.access_mgr.build(refreshed[0])
             refresh_token = refreshed[1]
@@ -58,10 +58,10 @@ class RouteAuthManager(Manager):
         if (access_name := self.param_names.get(AccessToken)):
             kwargs[access_name] = access_token
 
-        if self.is_async:
-            response = await func(*args, **kwargs)
-        else:
-            response = func(*args, **kwargs)
+        response = await self.am.safex.with_fallback(
+            func, Response(status_code=500),
+            *args, **kwargs
+        )
 
         if isinstance(response, Response):
             ...
@@ -76,7 +76,7 @@ class RouteAuthManager(Manager):
         # after route processing ( start )
 
         if refresh_token:
-            self.am.log('(Not required) Updating tokens')
+            self.am.logger.debug('(Not required) Updating tokens')
 
             self.am.access_mgr.set_token(
                     response,
@@ -95,28 +95,28 @@ class RouteAuthManager(Manager):
         if access_token:
             access_token = self.am.access_mgr.resolve(access_token)
         else:
-            self.am.log('(Required) No access token provided')
+            self.am.logger.debug('(Required) No access token provided')
         refresh_token = None
         
         if not access_token:
-            self.am.log('(Required) Rotating')
+            self.am.logger.debug('(Required) Rotating')
 
             refresh_token = self.am.refresh_mgr.get_token(request_)
         
             if not refresh_token:
-                self.am.log('(Required) No refresh token provided: 401')
+                self.am.logger.debug('(Required) No refresh token provided: 401')
 
                 return Response(status_code=401)
             
-            if not self.am.token_rotator_:
-                self.am.log('(Required) Rotation manage is missing: 500')
+            if not self.am.token_rotator_.is_assigned:
+                self.am.logger.critical('(Required) Rotation manage is missing: 500')
 
                 return Response(status_code=500)
 
             refreshed = await self.am.token_rotator_.rotate(request_, refresh_token)  # type: ignore
 
             if not refreshed:
-                self.am.log('(Required) Rotation failed: 401')
+                self.am.logger.debug('(Required) Rotation failed: 401')
 
                 return Response(status_code=401)
             
@@ -124,7 +124,7 @@ class RouteAuthManager(Manager):
             refresh_token = refreshed[1]
 
         if not self.scopes & set(access_token.get('scopes', set())):
-            self.am.log('(Required) No suitable scope provided: 403')
+            self.am.logger.debug('(Required) No suitable scope provided: 403')
 
             return Response(status_code=403)
 
@@ -134,10 +134,10 @@ class RouteAuthManager(Manager):
         if (access_name := self.param_names.get(AccessToken)):
             kwargs[access_name] = access_token
 
-        if self.is_async:
-            response = await func(*args, **kwargs)
-        else:
-            response = func(*args, **kwargs)
+        response = await self.am.safex.with_fallback(
+            func, Response(status_code=500),
+            *args, **kwargs
+        )
 
         if isinstance(response, Response):
             ...
@@ -152,7 +152,7 @@ class RouteAuthManager(Manager):
         # after route processing ( start )
 
         if refresh_token:
-            self.am.log('(Required) Updating tokens')
+            self.am.logger.debug('(Required) Updating tokens')
 
             self.am.access_mgr.set_token(
                     response,

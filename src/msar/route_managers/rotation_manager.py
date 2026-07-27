@@ -12,10 +12,11 @@ class RotationManager(Manager):
         if rotation_handler:
             super().__init__(rotation_handler)
         else:
-            super().__init__(lambda req, ref: None)
+            super().__init__(lambda req, ref, refm=None: None)
         
         self.access_m = access_m
         self.refresh_m = refresh_m
+        self.is_assigned = bool(rotation_handler)
     
     def assign_handler(self, rotation_handler: rotation_handler_type):
         return RotationManager(self.access_m, self.refresh_m, rotation_handler)
