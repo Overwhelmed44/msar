@@ -6,7 +6,7 @@ export default class Client {
     private accessToken: string
 
     constructor (
-        private baseURL: string | URL,
+        private baseURL?: string | URL,
         private unauthed?: () => void,
         private sniffPlatform: boolean = true,
         private withRetries: boolean = true
@@ -27,7 +27,14 @@ export default class Client {
         if (this.sniffPlatform) headers.append('X-User-Platform', getPlatform());
         rInit.headers = headers;
 
-        let resp = await (this.withRetries ? withRetries(() => fetch(new URL(endpoint, this.baseURL), rInit)) : fetch(new URL(endpoint, this.baseURL), rInit));
+        let url: URL | string;
+        if (this.baseURL) {
+            url = new URL(endpoint, this.baseURL)
+        } else {
+            url = endpoint;
+        }
+
+        let resp = await (this.withRetries ? withRetries(() => fetch(url, rInit)) : fetch(url, rInit));
 
         if (resp.status == 401 && this.unauthed) this.unauthed();
         

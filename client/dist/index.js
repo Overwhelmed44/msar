@@ -24,7 +24,14 @@ export default class Client {
         if (this.sniffPlatform)
             headers.append('X-User-Platform', getPlatform());
         rInit.headers = headers;
-        let resp = await (this.withRetries ? withRetries(() => fetch(new URL(endpoint, this.baseURL), rInit)) : fetch(new URL(endpoint, this.baseURL), rInit));
+        let url;
+        if (this.baseURL) {
+            url = new URL(endpoint, this.baseURL);
+        }
+        else {
+            url = endpoint;
+        }
+        let resp = await (this.withRetries ? withRetries(() => fetch(url, rInit)) : fetch(url, rInit));
         if (resp.status == 401 && this.unauthed)
             this.unauthed();
         const newToken = resp.headers.get('X-Refreshed-Access-Token') ||

@@ -28,13 +28,13 @@ class AuthManager(ABSAuthManager):
         scopes: Iterable[Scope] | None = None, 
     ):
         if access_token_policy is None:
-            access_token_policy = self.__access_token_policy
+            access_token_policy = self._access_token_policy
         if refresh_token_policy is None:
-            refresh_token_policy = self.__refresh_token_policy
+            refresh_token_policy = self._refresh_token_policy
         if cookie_policy is None:
-            cookie_policy = self.__cookie_policy
+            cookie_policy = self._cookie_policy
         if scopes is None:
-            scopes = self.__scopes
+            scopes = self._scopes
 
         return AuthManager(refresh_token_policy, cookie_policy, scopes, self.pm, access_token_policy=access_token_policy, mode=self.mode)
     
@@ -80,4 +80,4 @@ class AuthManager(ABSAuthManager):
 
     @property
     def cookie_policy(self) -> CookiePolicy:
-        return self.__cookie_policy
+        return self._cookie_policy

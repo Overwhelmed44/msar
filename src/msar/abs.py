@@ -51,10 +51,10 @@ class ABSAuthManager():
             scopes = []
 
         # Raw args for with_ method
-        self.__access_token_policy = access_token_policy
-        self.__refresh_token_policy = refresh_token_policy
-        self.__cookie_policy = cookie_policy
-        self.__scopes = scopes
+        self._access_token_policy = access_token_policy
+        self._refresh_token_policy = refresh_token_policy
+        self._cookie_policy = cookie_policy
+        self._scopes = scopes
 
         self.access_f = TokenFactory(AccessToken, access_token_policy)  # type: ignore
         self.refresh_f = TokenFactory(RefreshToken, refresh_token_policy)  # type: ignore

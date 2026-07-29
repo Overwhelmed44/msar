@@ -10,6 +10,7 @@ am = AuthManager(
     [Basic(["api"]), Hierarchy(["tester", "auth"]), Admin(["admin"])],
     mode='dev'
 )
+wam = am.with_("abc")
 enc_acc = lambda p: am.use_access(p).serialize()
 enc_ref = lambda p: am.use_refresh(p).serialize()
 
