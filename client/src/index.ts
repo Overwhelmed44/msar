@@ -15,13 +15,9 @@ export default class Client {
     }
 
     private async makeRequest(endpoint: string | URL, method: string, body: BodyInit | undefined, headers: HeadersInit): Promise<Response> {
-        console.debug(headers);
-
         const rInit: RequestInit = {};
-
         rInit.method = method
 
-        console.debug(body);
         if (body !== undefined) {
             rInit.body = body
         }
@@ -38,7 +34,6 @@ export default class Client {
         const newToken = resp.headers.get('X-Refreshed-Access-Token') ||
                          resp.headers.get('X-Issued-Access-Token') ||
                          resp.headers.get('X-Access-Token');
-        console.debug(newToken)
 
         if (newToken) {
             this.accessToken = newToken;
