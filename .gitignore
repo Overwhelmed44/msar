@@ -6,4 +6,3 @@ nb.ipynb
 .pytest_cache
 msar.egg-info
 node_modules
-dist

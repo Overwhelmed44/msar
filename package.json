@@ -1,0 +1,21 @@
+{
+  "name": "msar",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./client/dist/index.js",
+  "types": "./client/dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./client/dist/index.d.ts",
+      "import": "./client/dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "tsc && vitest"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  }
+}
