@@ -1,4 +1,6 @@
 from fastapi.responses import PlainTextResponse, JSONResponse
+from fastapi.encoders import jsonable_encoder
+from pydantic import ValidationError
 from fastapi import Request, Response
 from typing import Iterable
 from inspect import Parameter
@@ -58,17 +60,20 @@ class RouteAuthManager(Manager):
         if (access_name := self.param_names.get(AccessToken)):
             kwargs[access_name] = access_token
 
-        response = await self.am.safex.with_fallback(
+        err, response = await self.am.safex.with_fallback(
             func, Response(status_code=500),
             *args, **kwargs
         )
+
+        if isinstance(err, ValidationError):
+            response = Response(status_code=422)
 
         if isinstance(response, Response):
             ...
         elif isinstance(response, str):
             response = PlainTextResponse(response)
-        elif isinstance(response, dict):
-            response = JSONResponse(response)
+        elif isinstance(response, (dict, list)):
+            response = JSONResponse(jsonable_encoder(response))
         else:
             raise RuntimeError('Unknown response type')
 
@@ -118,7 +123,10 @@ class RouteAuthManager(Manager):
             if not refreshed:
                 self.am.logger.debug('(Required) Rotation failed: 401')
 
-                return Response(status_code=401)
+                r = Response(status_code=401)
+                r.headers['X-MSAR-HINT'] = 'jwt-error'
+
+                return r
             
             access_token = self.am.access_mgr.build(refreshed[0])
             refresh_token = refreshed[1]
@@ -134,10 +142,13 @@ class RouteAuthManager(Manager):
         if (access_name := self.param_names.get(AccessToken)):
             kwargs[access_name] = access_token
 
-        response = await self.am.safex.with_fallback(
+        err, response = await self.am.safex.with_fallback(
             func, Response(status_code=500),
             *args, **kwargs
         )
+
+        if isinstance(err, ValidationError):
+            response = Response(status_code=422)
 
         if isinstance(response, Response):
             ...
