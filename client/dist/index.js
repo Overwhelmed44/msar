@@ -16,13 +16,17 @@ export default class Client {
     async makeRequest(endpoint, method, body, headers) {
         const rInit = {};
         rInit.method = method;
+        headers = new Headers(headers);
+        headers.set('Authorization', this.accessToken);
+        if (this.sniffPlatform)
+            headers.set('X-User-Platform', getPlatform());
         if (body !== undefined) {
+            if (!(body instanceof FormData) && typeof body === 'object') {
+                body = JSON.stringify(body);
+                headers.set('Content-Type', 'application/json');
+            }
             rInit.body = body;
         }
-        headers = new Headers(headers);
-        headers.append('Authorization', this.accessToken);
-        if (this.sniffPlatform)
-            headers.append('X-User-Platform', getPlatform());
         rInit.headers = headers;
         let url;
         if (this.baseURL) {
@@ -44,10 +48,10 @@ export default class Client {
         }
         return resp;
     }
-    get = async (endpoint, headers) => await this.makeRequest(endpoint, 'GET', undefined, headers || {});
-    post = async (endpoint, body, headers) => await this.makeRequest(endpoint, 'POST', body, headers || {});
-    put = async (endpoint, body, headers) => await this.makeRequest(endpoint, 'PUT', body, headers || {});
-    delete = async (endpoint, body, headers) => await this.makeRequest(endpoint, 'DELETE', body, headers || {});
-    patch = async (endpoint, body, headers) => await this.makeRequest(endpoint, 'PATCH', body, headers || {});
+    get = (endpoint, headers) => this.makeRequest(endpoint, 'GET', undefined, headers || {});
+    post = (endpoint, body, headers) => this.makeRequest(endpoint, 'POST', body, headers || {});
+    put = (endpoint, body, headers) => this.makeRequest(endpoint, 'PUT', body, headers || {});
+    delete = (endpoint, body, headers) => this.makeRequest(endpoint, 'DELETE', body, headers || {});
+    patch = (endpoint, body, headers) => this.makeRequest(endpoint, 'PATCH', body, headers || {});
 }
 //# sourceMappingURL=index.js.map

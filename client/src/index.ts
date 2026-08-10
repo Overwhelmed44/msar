@@ -14,17 +14,23 @@ export default class Client {
         this.accessToken = ''
     }
 
-    private async makeRequest(endpoint: string | URL, method: string, body: BodyInit | undefined, headers: HeadersInit): Promise<Response> {
+    private async makeRequest(endpoint: string | URL, method: string, body: BodyInit | Record<string, unknown> | undefined, headers: HeadersInit): Promise<Response> {
         const rInit: RequestInit = {};
         rInit.method = method
 
+        headers = new Headers(headers);
+        headers.set('Authorization', this.accessToken);
+        if (this.sniffPlatform) headers.set('X-User-Platform', getPlatform());
+
         if (body !== undefined) {
+            if (!(body instanceof FormData) && typeof body === 'object') {
+                body = JSON.stringify(body);
+                headers.set('Content-Type', 'application/json')
+            }
+
             rInit.body = body
         }
-
-        headers = new Headers(headers);
-        headers.append('Authorization', this.accessToken);
-        if (this.sniffPlatform) headers.append('X-User-Platform', getPlatform());
+        
         rInit.headers = headers;
 
         let url: URL | string;
@@ -53,9 +59,9 @@ export default class Client {
         return resp;
     }
 
-    public get = async (endpoint: string, headers?: HeadersInit): Promise<Response> => await this.makeRequest(endpoint, 'GET', undefined, headers || {})
-    public post = async (endpoint: string, body?: BodyInit, headers?: HeadersInit): Promise<Response> => await this.makeRequest(endpoint, 'POST', body, headers || {})
-    public put = async (endpoint: string, body?: BodyInit, headers?: HeadersInit): Promise<Response> => await this.makeRequest(endpoint, 'PUT', body, headers || {})
-    public delete = async (endpoint: string, body?: BodyInit, headers?: HeadersInit): Promise<Response> => await this.makeRequest(endpoint, 'DELETE', body, headers || {})
-    public patch = async (endpoint: string, body?: BodyInit, headers?: HeadersInit): Promise<Response> => await this.makeRequest(endpoint, 'PATCH', body, headers || {})
+    public get = (endpoint: string, headers?: HeadersInit): Promise<Response> => this.makeRequest(endpoint, 'GET', undefined, headers || {})
+    public post = (endpoint: string, body?: BodyInit | Record<string, unknown>, headers?: HeadersInit): Promise<Response> => this.makeRequest(endpoint, 'POST', body, headers || {})
+    public put = (endpoint: string, body?: BodyInit | Record<string, unknown>, headers?: HeadersInit): Promise<Response> => this.makeRequest(endpoint, 'PUT', body, headers || {})
+    public delete = (endpoint: string, body?: BodyInit | Record<string, unknown>, headers?: HeadersInit): Promise<Response> => this.makeRequest(endpoint, 'DELETE', body, headers || {})
+    public patch = (endpoint: string, body?: BodyInit | Record<string, unknown>, headers?: HeadersInit): Promise<Response> => this.makeRequest(endpoint, 'PATCH', body, headers || {})
 }
