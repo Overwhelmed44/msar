@@ -18,6 +18,7 @@ def test_public(client):
 def test_cycle(client):
     r = client.post('/login')
     assert r.status_code == 200
+    assert r.cookies.get('refresh_token')
 
     r = client.get('/greet')
     assert r.status_code == 200

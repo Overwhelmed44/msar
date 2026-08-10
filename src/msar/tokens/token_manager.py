@@ -49,7 +49,7 @@ class AccessTokenManager(TokenManager):
     
     def set_token(self, response, token):
         if token:
-            response.headers.append(f'X-Access-Token', f'{token}')
+            response.headers['X-Access-Token'] = token
 
 
 class RefreshTokenManager(TokenManager):

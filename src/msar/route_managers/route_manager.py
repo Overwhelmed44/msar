@@ -81,7 +81,7 @@ class RouteAuthManager(Manager):
         # after route processing ( start )
 
         if refresh_token:
-            self.am.logger.debug('(Not required) Updating tokens')
+            self.am.logger.debug(f'(Not required) Updating tokens: [{access_token}, {refresh_token}]')
 
             self.am.access_mgr.set_token(
                     response,
@@ -154,8 +154,8 @@ class RouteAuthManager(Manager):
             ...
         elif isinstance(response, str):
             response = PlainTextResponse(response)
-        elif isinstance(response, dict):
-            response = JSONResponse(response)
+        elif isinstance(response, (dict, list)):
+            response = JSONResponse(jsonable_encoder(response))
         else:
             raise RuntimeError('Unknown response type')
 
@@ -163,7 +163,7 @@ class RouteAuthManager(Manager):
         # after route processing ( start )
 
         if refresh_token:
-            self.am.logger.debug('(Required) Updating tokens')
+            self.am.logger.debug(f'(Required) Updating tokens: [{access_token}, {refresh_token}]')
 
             self.am.access_mgr.set_token(
                     response,

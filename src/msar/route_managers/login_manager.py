@@ -1,5 +1,6 @@
 from fastapi import Response
 from makefun import wraps
+from pydantic import ValidationError
 
 from ..abs import ABSAuthManager as AuthManager
 from .manager import Manager
@@ -17,10 +18,13 @@ class LoginManager(Manager):
         async def wrapped(*args, **kwargs):
             # route processing ( start )
 
-            response = await self.am.safex.with_fallback(
+            err, response = await self.am.safex.with_fallback(
                 self.handler, Response(status_code=500),
                 *args, **kwargs
             )
+
+            if isinstance(err, ValidationError):
+                response = Response(status_code=422)
         
             # route processing ( end )
             # after route processing ( start )
