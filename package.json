@@ -1,6 +1,6 @@
 {
   "name": "msar",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "type": "module",
   "main": "./client/dist/index.js",
   "types": "./client/dist/index.d.ts",
@@ -12,8 +12,10 @@
   },
   "scripts": {
     "build": "tsc",
-    "stage": "tsc && git add .",
-    "test": "tsc && vitest"
+    "test": "tsc && vitest",
+    "patch": "tsc && npm version --no-git-tag-version patch && git add .",
+    "minor": "tsc && npm version --no-git-tag-version minor && git add .",
+    "major": "tsc && npm version --no-git-tag-version major && git add ."
   },
   "devDependencies": {
     "typescript": "^7.0.2",

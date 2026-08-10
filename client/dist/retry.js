@@ -4,7 +4,7 @@ export default async function withRetries(fn, max = 3) {
     let iter = 1;
     do {
         r = await fn();
-        if (r.status == 401) {
+        if (r.status == 401 && r.headers.get('X-MSAR-HINT') == 'jwt-error') {
             // Could fail due to a race condition when rotating JWT
             console.warn(`Failed with ${r.status}. Retrying in 2s...`);
             await new Promise(resolve => setTimeout(resolve, 2000));

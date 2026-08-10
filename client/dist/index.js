@@ -32,7 +32,9 @@ export default class Client {
             url = endpoint;
         }
         let resp = await (this.withRetries ? withRetries(() => fetch(url, rInit)) : fetch(url, rInit));
-        if (resp.status == 401 && this.unauthed)
+        if (resp.status == 401 &&
+            this.unauthed &&
+            resp.headers.get('X-MSAR-HINT') == 'jwt-error')
             this.unauthed();
         const newToken = resp.headers.get('X-Refreshed-Access-Token') ||
             resp.headers.get('X-Issued-Access-Token') ||
