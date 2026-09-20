@@ -8,7 +8,8 @@ am = AuthManager(
     "abc",
     {'secure': False},
     [Basic(["auth"])],
-    mode='dev'
+    mode='dev',
+    refresh_token_policy='abc'
 )
 enc_acc = lambda p: am.use_access(p).serialize()
 enc_ref = lambda p: am.use_refresh(p).serialize()

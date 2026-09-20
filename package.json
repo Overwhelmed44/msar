@@ -1,6 +1,6 @@
 {
   "name": "msar",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "type": "module",
   "main": "./client/dist/index.js",
   "types": "./client/dist/index.d.ts",

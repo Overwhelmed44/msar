@@ -8,7 +8,8 @@ am = AuthManager(
     "abc",
     {'secure': False},
     [Basic(["api"]), Hierarchy(["tester", "auth"]), Admin(["admin"])],
-    mode='dev'
+    mode='dev',
+    refresh_token_policy='abc'
 )
 wam = am.with_("abc")
 enc_acc = lambda p: am.use_access(p).serialize()

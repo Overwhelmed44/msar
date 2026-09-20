@@ -17,7 +17,7 @@ export default class Client {
         const rInit = {};
         rInit.method = method;
         headers = new Headers(headers);
-        headers.set('Authorization', `Bearer ${this.accessToken}`);
+        headers.set('Authorization', (this.accessToken ? `Bearer ${this.accessToken}` : ''));
         if (this.sniffPlatform)
             headers.set('X-User-Platform', getPlatform());
         if (body !== undefined) {

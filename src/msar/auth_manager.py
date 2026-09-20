@@ -18,8 +18,6 @@ from .abs import ABSAuthManager
 
 
 class AuthManager(ABSAuthManager):
-    '''Provides wrappers and token managers for auth handling'''
-    
     def with_(
         self,
         access_token_policy: AccessTokenPolicy | str | bytes | None = None,
@@ -36,7 +34,7 @@ class AuthManager(ABSAuthManager):
         if scopes is None:
             scopes = self._scopes
 
-        return AuthManager(refresh_token_policy, cookie_policy, scopes, self.pm, access_token_policy=access_token_policy, mode=self.mode)
+        return AuthManager(access_token_policy, cookie_policy, scopes, self.pm, refresh_token_policy=refresh_token_policy, mode=self.mode)
     
     def auth_manager(self, scopes: Iterable[str] | None = None):
         '''Main wrapper'''

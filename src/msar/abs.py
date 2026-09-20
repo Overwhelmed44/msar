@@ -18,35 +18,46 @@ from .safex.safex import Safex
 class ABSAuthManager():
     '''Provides wrappers and token managers for auth handling'''
 
+    logger = logging.getLogger('msar')
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter('%(levelname)s - %(name)s - %(message)s'))
+    logger.addHandler(handler)
+
     def __init__(
         self,
-        refresh_token_policy: RefreshTokenPolicy | str | bytes | None = None,
+        access_token_policy: AccessTokenPolicy | str | bytes,
         cookie_policy: CookiePolicy | str | None = None,
         scopes: Iterable[Scope] | None = None, 
         plugins: PluginManager | None = None,
         *,
-        access_token_policy: AccessTokenPolicy | str | bytes | None = None,
+        refresh_token_policy: RefreshTokenPolicy | str | bytes | None = None,
         access_token_manager: type[AccessTokenManager] = AccessTokenManager,
         refresh_token_manager: type[RefreshTokenManager] = RefreshTokenManager,
         mode: Literal['dev', 'prod'] = 'prod'
-    ):
-        # Defaults
-        if access_token_policy is None:
-            access_token_policy = token_bytes(32)
+    ):  
         if isinstance(access_token_policy, str):
-            access_token_policy = access_token_policy.encode()
+            try:
+                access_token_policy = bytes.fromhex(access_token_policy)
+            except ValueError:
+                access_token_policy = access_token_policy.encode()
         if isinstance(access_token_policy, bytes):
             access_token_policy = AccessTokenPolicy(secret=access_token_policy, algorithm='HS256')
+
         if refresh_token_policy is None:
             refresh_token_policy = ''
         if isinstance(refresh_token_policy, str):
-            refresh_token_policy = refresh_token_policy.encode()
+            try:
+                refresh_token_policy = bytes.fromhex(refresh_token_policy)
+            except ValueError:
+                refresh_token_policy = refresh_token_policy.encode()
         if isinstance(refresh_token_policy, bytes):
             refresh_token_policy = RefreshTokenPolicy(secret=refresh_token_policy, algorithm='HS256')
+        
         if cookie_policy is None:
             cookie_policy = CookiePolicy({'max_age': 14 * 24 * 60 * 60, 'path': '/', 'secure': True, 'httponly': True, 'samesite': 'lax'})
         if isinstance(cookie_policy, str):
             cookie_policy = CookiePolicy({'max_age': 14 * 24 * 60 * 60, 'path': '/', 'domain': cookie_policy, 'secure': True, 'httponly': True, 'samesite': 'lax'})
+
         if scopes is None:
             scopes = []
 
@@ -65,14 +76,9 @@ class ABSAuthManager():
         self.pm = plugins or PluginManager.get_default_manager()
         self.token_rotator_ = RotationManager(self.access_mgr, self.refresh_mgr)
         self.mode: Literal['dev', 'prod'] = mode
+        ABSAuthManager.logger.setLevel(logging.DEBUG if self.mode == 'dev' else logging.WARNING)
 
         self.provide_with: list[type] = [Request, AccessToken]
-
-        self.logger = logging.getLogger('msar')
-        self.logger.setLevel(logging.DEBUG if self.mode == 'dev' else logging.WARNING)
-        handler = logging.StreamHandler()
-        handler.setFormatter(logging.Formatter('%(levelname)s - %(name)s - %(message)s'))
-        self.logger.addHandler(handler)
 
         self.safex = Safex(self.logger)
     
