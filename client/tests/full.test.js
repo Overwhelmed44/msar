@@ -52,7 +52,7 @@ describe('Client', () => {
       await client.get('/users');
 
       const headers = mockFetch.mock.calls[0][1]?.headers;
-      expect(headers.get('Authorization')).toBe('test-token');
+      expect(headers.get('Authorization')).toBe('Bearer test-token');
     });
 
     it('should include platform header when sniffPlatform is true', async () => {
