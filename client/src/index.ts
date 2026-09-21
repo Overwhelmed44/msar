@@ -4,6 +4,7 @@ import withRetries from "./retry.js";
 
 export default class Client {
     private accessToken: string
+    public host: string
 
     constructor (
         private baseURL?: string | URL,
@@ -11,12 +12,22 @@ export default class Client {
         private sniffPlatform: boolean = true,
         private withRetries: boolean = true
     ) {
-        this.accessToken = ''
+        this.accessToken = '';
+
+        const hostname = window.location.hostname;
+        const spl = hostname.split('.');
+
+        if (spl.length == 2) {
+            this.host = hostname
+        } else {
+            this.host = spl.slice(1).join('.')
+        }
     }
 
     private async makeRequest(endpoint: string | URL, method: string, body: BodyInit | Record<string, unknown> | undefined, headers: HeadersInit): Promise<Response> {
         const rInit: RequestInit = {};
         rInit.method = method
+        rInit.credentials = 'include'
 
         headers = new Headers(headers);
         headers.set('Authorization', (this.accessToken ? `Bearer ${this.accessToken}`: ''));

@@ -6,16 +6,26 @@ export default class Client {
     sniffPlatform;
     withRetries;
     accessToken;
+    host;
     constructor(baseURL, unauthed, sniffPlatform = true, withRetries = true) {
         this.baseURL = baseURL;
         this.unauthed = unauthed;
         this.sniffPlatform = sniffPlatform;
         this.withRetries = withRetries;
         this.accessToken = '';
+        const hostname = window.location.hostname;
+        const spl = hostname.split('.');
+        if (spl.length == 2) {
+            this.host = hostname;
+        }
+        else {
+            this.host = spl.slice(1).join('.');
+        }
     }
     async makeRequest(endpoint, method, body, headers) {
         const rInit = {};
         rInit.method = method;
+        rInit.credentials = 'include';
         headers = new Headers(headers);
         headers.set('Authorization', (this.accessToken ? `Bearer ${this.accessToken}` : ''));
         if (this.sniffPlatform)

@@ -4,6 +4,7 @@ export default class Client {
     private sniffPlatform;
     private withRetries;
     private accessToken;
+    host: string;
     constructor(baseURL?: string | URL | undefined, unauthed?: (() => void) | undefined, sniffPlatform?: boolean, withRetries?: boolean);
     private makeRequest;
     get: (endpoint: string, headers?: HeadersInit) => Promise<Response>;
